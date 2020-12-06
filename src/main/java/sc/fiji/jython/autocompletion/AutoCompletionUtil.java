@@ -1,4 +1,4 @@
-package org.fiji.jython.autocompletion;
+package sc.fiji.jython.autocompletion;
 
 import java.util.ArrayList;
 import java.util.HashMap;

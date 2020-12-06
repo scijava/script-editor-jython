@@ -17,8 +17,8 @@
 	<url>https://github.com/fiji/jython-autocompletion</url>
 	<inceptionYear>2020</inceptionYear>
 	<organization>
-		<name>SciJava</name>
-		<url>https://scijava.org/</url>
+		<name>Fiji</name>
+		<url>https://fiji.sc</url>
 	</organization>
 	<licenses>
 		<license>
