@@ -6,8 +6,13 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.python.indexer.Indexer;
+import org.python.indexer.types.NModuleType;
+
 public class StaticDotAutocompletions implements DotAutocompletions
 {
+	final private Indexer indexer = new Indexer();
+	
 	final String className;
 	public StaticDotAutocompletions(final String className) {
 		this.className = className;
@@ -21,6 +26,13 @@ public class StaticDotAutocompletions implements DotAutocompletions
 		final List<String> ac = new ArrayList<>();
 		if (null != this.className) {
 			try {
+				// Check first if it's a python module from the builtin set
+				final NModuleType module = indexer.builtins.get(this.className);
+				if (null != module) {
+					ac.addAll(module.getTable().keySet());
+					return ac;
+				}
+				// Or a java class:
 				final Class<?> c = Class.forName(this.className);
 				for (final Field f: c.getDeclaredFields())
 					if (Modifier.isStatic(f.getModifiers()))
@@ -28,6 +40,8 @@ public class StaticDotAutocompletions implements DotAutocompletions
 				for (final Method m: c.getDeclaredMethods())
 					if (Modifier.isStatic(m.getModifiers()))
 						ac.add(m.getName()); // TODO could do a parameter-driven autocompletion
+			} catch (ClassNotFoundException cnfe) {
+				System.out.println("Cannot find java class or python module " + this.className);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -37,6 +51,6 @@ public class StaticDotAutocompletions implements DotAutocompletions
 	
 	@Override
 	public String toString() {
-		return "StaticDotAutocompletions: " + className;
+		return "StaticDotAutocompletions: " + className + " -- " +String.join(", ", get());
 	}
 }

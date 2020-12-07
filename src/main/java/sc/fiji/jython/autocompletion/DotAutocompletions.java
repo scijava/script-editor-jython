@@ -15,7 +15,7 @@ public interface DotAutocompletions {
 	
 	public List<String> get();
 	
-	static public List<String> getFieldsAndMethods(final String className) {
+	static public List<String> getPublicFieldsAndMethods(final String className) {
 		final List<String> ac = new ArrayList<>();
 		if (null != className) {
 			try {
@@ -25,7 +25,7 @@ public interface DotAutocompletions {
 				for (final Method m: c.getMethods())
 					ac.add(m.getName()); // TODO could do a parameter-driven autocompletion
 			} catch (Exception e) {
-				e.printStackTrace();
+				System.out.println("Could not load class " + className + " :: " + e.getMessage());
 			}
 		}
 		return ac;
