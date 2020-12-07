@@ -30,6 +30,7 @@ public class JythoScriptParserTest {
 	
 	static public final void main(String[] args) {
 		try {
+			JythonScriptParser.DEBUG = true;
 			JythonScriptParser.parseAST(testCode).print("");
 		} catch (Exception e) {
 			e.printStackTrace();

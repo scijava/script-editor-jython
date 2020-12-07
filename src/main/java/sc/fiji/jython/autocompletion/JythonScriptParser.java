@@ -25,19 +25,37 @@ import org.python.core.ParserFacade;
 import org.python.core.PyObject;
 
 public class JythonScriptParser {
+	
+	/** Controls whether debugging statements print to stdout. */
+	static public boolean DEBUG = false;
+	
 	/**
-	 * Returns the top-level Scope. 
+	 * Parse valid jython code.
+	 * 
+	 * @return The top-level {@code Scope}, which is empty (see {@code {@link Scope#isEmpty()}) when the code has errors and can't be parsed by {@code ParserFacade#parse(String, CompileMode, String, CompilerFlags)}.
 	 */
 	static public Scope parseAST(final String code) {
 		// The code includes from beginning of the file until the point at which an autocompletion is requested.
 		// Therefore, remove the last line, which would fail to parse because it is incomplete
 		final int lastLineBreak = code.lastIndexOf("\n");
-		final String codeToParse = code.substring(0, lastLineBreak);
-		final mod m = ParserFacade.parse(codeToParse, CompileMode.exec, "<none>", new CompilerFlags());
-
-		return parseNode(m.getChildren(), null, false);
+		final String codeToParse = -1 == lastLineBreak ? code : code.substring(0, lastLineBreak);
+		try {
+			final mod m = ParserFacade.parse(codeToParse, CompileMode.exec, "<none>", new CompilerFlags());
+			return parseNode(m.getChildren(), null, false);
+		} catch (Throwable t) {
+			return new Scope(null);
+		}
 	}
 	
+	/**
+	 * Parse a {@code List} of {@code PythonTree} instances, each representing a python statement
+	 * including {@code ImportFrom, Assign, FunctionDef, ClassDef}.
+	 * 
+	 * @param children The list of statements.
+	 * @param parent The {@code Scope} that contains these statements.
+	 * @param is_class Whether the containing {@code Scope} is a python class definition.
+	 * @return A new {@code Scope} containing {@code DotAutocompletions} to represent each statement.
+	 */
 	static public Scope parseNode(final List<PythonTree> children, final Scope parent, final boolean is_class) {
 		
 		final Scope scope = new Scope(parent, is_class);
@@ -58,17 +76,13 @@ public class JythonScriptParser {
 		}
 		
 		return scope;
-		// Prints the top code blocks, of class:
-		// class org.python.antlr.ast.ImportFrom
-		// class org.python.antlr.ast.Assign
-		// class org.python.antlr.ast.ClassDef
-		// class org.python.antlr.ast.FunctionDef
 	}
 	
 	/**
 	 * Parse import statements, considering aliases.
+	 * There can be more than one if e.g. commas were used, as in "from ij import IJ, ImageJ".
 	 * @param im
-	 * @return
+	 * @return A map of simple class names or their aliases as keys versus a {@code DotAutocompletions} as value. 
 	 */
 	static public Map<String, DotAutocompletions> parseImportStatement(final ImportFrom im) {
 		final Map<String, DotAutocompletions> classes = new HashMap<>();
@@ -81,7 +95,15 @@ public class JythonScriptParser {
 		return classes;
 	}
 	
-	// TODO: enable e.g. "self.msg = 'hi'" to work correctly, adding "msg" as a possible autocompletion for "self."
+	/**
+	 * Parse an assignment (an equal sign) to find out the class of the left side (the variable)
+	 * by asking the right side about what it is or returns.
+	 * There can be more than one variable when using deconstruction statements like e.g. "width, height = imp.getWidth(), imp.getHeight()".
+	 * 
+	 * @param assign
+	 * @param scope
+	 * @return A map of variable names as keys versus {@code DotAutocompletions} as values.
+	 */
 	static public Map<String, DotAutocompletions> parseAssignStatement(final Assign assign, final Scope scope) {
 		final Map<String, DotAutocompletions> assigns = new HashMap<>();
 		//final expr right = assign.getInternalValue(); // strangely this works
@@ -104,12 +126,10 @@ public class JythonScriptParser {
 	
 	/**
 	 * Adds a child Scope to the given parent Scope, and also a variable to the parent scope
-	 * with no class (just for the name). Then populates the child scope.
+	 * with no class, just for the function name. Then populates the child scope.
 	 * 
 	 * @fn
 	 * @parent
-	 * 
-	 * return
 	 */
 	static public void parseFunctionDef(final FunctionDef fn, final Scope parent) {
 		// Get the function name
@@ -126,7 +146,8 @@ public class JythonScriptParser {
 	}
 	
 	/**
-	 * Adds an entry to the parent scope with the classname, e.g. Volume, with its parameters,
+	 * Adds an entry to the parent scope with the python classname, e.g. "Volume", with its parameters (from its __init__ method if any),
+	 * including as well the methods and fields from any superclass,
 	 * and adds another entry in the class scope for "self" with all the class method names.
 	 * 
 	 * @param c
@@ -215,6 +236,6 @@ public class JythonScriptParser {
 	}
 
 	static public final void print(Object s) {
-		System.out.println(s);
+		if (DEBUG) System.out.println(s);
 	}
 }
