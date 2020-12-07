@@ -21,10 +21,12 @@ public class Scope {
 		this.parent = parent;
 		if (null != parent) {
 			parent.children.add(this);
-			//this.imports.putAll(parent.imports);
-			//this.vars.putAll(parent.vars);
 		}
 		this.is_class = is_class;
+	}
+	
+	public boolean isEmpty() {
+		return imports.isEmpty() && vars.isEmpty();
 	}
 	
 	public DotAutocompletions find(final String name, final DotAutocompletions default_value) {
