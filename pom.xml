@@ -70,7 +70,7 @@
 	</issueManagement>
 	<ciManagement>
 		<system>Travis CI</system>
-		<url>https://travis-ci.org/fiji/jython-autocompletion</url>
+		<url>https://travis-ci.com/fiji/jython-autocompletion</url>
 	</ciManagement>
 
 	<properties>
@@ -100,7 +100,6 @@
 		<dependency>
 			<groupId>org.python</groupId>
 			<artifactId>jython-slim</artifactId>
-			<version>${jython-slim.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
