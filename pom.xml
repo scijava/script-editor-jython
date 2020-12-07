@@ -102,6 +102,11 @@
 			<artifactId>jython-slim</artifactId>
 			<version>${jython-slim.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>ij</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 </project>
