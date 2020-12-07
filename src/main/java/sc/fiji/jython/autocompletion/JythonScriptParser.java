@@ -3,7 +3,6 @@ package sc.fiji.jython.autocompletion;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,6 +17,7 @@ import org.python.antlr.ast.ImportFrom;
 import org.python.antlr.ast.Name;
 import org.python.antlr.ast.Return;
 import org.python.antlr.ast.Tuple;
+import org.python.antlr.base.expr;
 import org.python.antlr.base.mod;
 import org.python.core.CompileMode;
 import org.python.core.CompilerFlags;
@@ -29,13 +29,15 @@ public class JythonScriptParser {
 	static public String testCode = String.join("\n",
 			"from ij import IJ, ImageJ as IJA, VirtualStack, ImagePlus",
 			"from ij.process import ByteProcessor",
-			"grey8 = IJ.getImage().GREY8", // static field but should work
+			"grey8 = IJ.getImage().GRAY8", // static field but should work
 			"pixels = IJ.getImage().getProcessor().getPixels()",
 			"imp = IJ.getImage()",
 			"ip = imp.getProcessor()",
 			"width, height = imp.getWidth(), imp.getHeight()",
 			"imp2 = imp",
 			"class Volume(VirtualStack):",
+			"  def __init__(self):",
+			"    self.msg = 'hi'",
 			"  def getProcessor(self, index):",
 			"    return ByteProcessor(512, 512)",
 			"  def getSize(self):",
@@ -72,16 +74,16 @@ public class JythonScriptParser {
 			else if (child instanceof Assign)
 				scope.vars.putAll(parseAssignStatement( (Assign)child, scope ));
 			else if (child instanceof FunctionDef)
-				parseFunctionDef( (FunctionDef)child, scope);
+				parseFunctionDef((FunctionDef)child, scope);
 			else if (child instanceof ClassDef)
-				scope.vars.put(parseClassDef( (ClassDef)child, scope), null); // TODO no value, but should have one, too look into its methods and implemented interfaces or superclasses
+				parseClassDef((ClassDef)child, scope);
+			else
+				print("UNKNOWN child: " + child + " -- " + child.getText());
 		}
 		
 		return scope;
-		// Prints the top code blocks
+		// Prints the top code blocks, of class:
 		// class org.python.antlr.ast.ImportFrom
-		// class org.python.antlr.ast.ImportFrom
-		// class org.python.antlr.ast.Assign
 		// class org.python.antlr.ast.Assign
 		// class org.python.antlr.ast.ClassDef
 		// class org.python.antlr.ast.FunctionDef
@@ -143,31 +145,48 @@ public class JythonScriptParser {
 		// Get the return type, if any
 		final PythonTree last = fn.getChildren().get(fn.getChildCount() -1);
 		final String returnClassName = last instanceof Return ? parseRight(last.getChildren().get(0), fn_scope).toString() : null;
-		parent.vars.put(name, new DefVarAutocompletions(returnClassName, argumentNames));
+		parent.vars.put(name, new DefVarDotAutocompletions(name, returnClassName, argumentNames));
 	}
 	
-	static public String parseClassDef(final ClassDef c, final Scope parent) {
-		final String name = c.getInternalName();
+	static public void parseClassDef(final ClassDef c, final Scope parent) {
+		final String pyClassname = c.getInternalName();
 		final Scope class_scope = parseNode(c.getChildren(), parent, true);
+		// Methods of the class
+		final List<String> classDotAutocompletions = new ArrayList<>();
+		// Iterate vars of the scope, which are those of the class only
+		for (final DotAutocompletions da: class_scope.vars.values()) {
+			if (da instanceof DefVarDotAutocompletions) {
+				classDotAutocompletions.add(((DefVarDotAutocompletions)da).fnName);
+			}
+		}
+		// Superclasses
+		final List<String> superclassNames = new ArrayList<>();
+		for (final expr e: c.getInternalBases()) {
+			final DotAutocompletions da = parent.find(e.getText(), null);
+			if (null == da || null == da.getClassname())
+				print("Could not find completions and className for " + e.getText());
+			else
+				superclassNames.add(da.getClassname());
+		}
+		print("CLASS: " + String.join(", ", c.getInternalBases().stream().map(expr -> expr.getText()).collect(Collectors.toList())));
 		// Search for the constructor __init__ if any
+		final List<String> argumentNames = new ArrayList<>();
 		for (final PythonTree child: c.getChildren()) {
-			if (child instanceof FunctionDef && "__init__" == child.getNode().toString()) {
-				final List<String> argumentNames = ((FunctionDef)child).getInternalArgs().getChildren().stream()
-						.map(arg -> arg.getNode().toString()).collect(Collectors.toList());
-				if (argumentNames.size() > 0) {
-					final String first = argumentNames.get(0);
-					if ("self" == first || "this" == first) {
-						final List<String> dotAutocompletions = new ArrayList<>();
-						// Get all methods and fields of the class
-						// TODO
-						// TODO the e.g. self.width = 10 within an __init__ will need to be captured in a Call parsing
-						class_scope.vars.put(first, new ClassDotAutocompletions(dotAutocompletions));
-					}
+			if (!(child instanceof FunctionDef)) continue;
+			final FunctionDef fn = (FunctionDef)child;
+			if ("__init__".equals(fn.getInternalName())) {
+				final List<PythonTree> children = fn.getInternalArgs().getChildren();
+				if (children.size() > 0) {
+					// Add all arguments except the first one, which is the internal reference conventionally named "self"
+					argumentNames.addAll(children.subList(1, children.size()).stream()
+						.map(arg -> arg.getNode().toString()).collect(Collectors.toList()));
+					// Use the first argument
+					class_scope.vars.put(children.get(0).getNode().toString(), new ClassDotAutocompletions(pyClassname, superclassNames, argumentNames, classDotAutocompletions));
 				}
 				break;
 			}
 		}
-		return name;
+		parent.vars.put(pyClassname, new DefVarDotAutocompletions(pyClassname, pyClassname, argumentNames));
 	}
 	
 	/** Discover the class returned by the right statement in an assignment.
