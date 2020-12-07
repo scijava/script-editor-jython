@@ -174,86 +174,41 @@ public class JythonScriptParser {
 	 * 
 	 * @param right
 	 */
-	static public DotAutocompletions parseRight(final Object right, final Scope scope) {
-		print("$$ right: " + right);
+	static public DotAutocompletions parseRight(final PyObject right, final Scope scope) {
 		if (right instanceof Name) {
-			// Could be that the var name is mistyped or nonexistent in the scope and it is therefore not known
-			return scope.find( ((Name)right).getInternalId(), EmptyDotAutocompletions.instance());
+			// e.g. the name of another variable:
+			// imp2 = imp
+			// e.g. the name of a constructor or a function
+			// ip = ByteProcessor(512, 512)
+			return scope.find( ((Name)right).getInternalId(), DotAutocompletions.EMPTY);
+		}
+		if (right instanceof Attribute) {
+			// e.g. a field or a method
+			// gray8 = IJ.getImage().GRAY8
+			final Attribute attr = (Attribute)right;
+			final DotAutocompletions da = parseRight(attr.getValue(), scope);
+			if (DotAutocompletions.EMPTY == da)
+				return da;
+			final String name = attr.getInternalAttr();
+			final String className = da.getClassname();
+			try {
+				final Class<?> c = Class.forName(className);
+				for (final Method m : c.getMethods())
+					if (m.getName().equals(name))
+						return new VarDotAutocompletions(m.getReturnType().getName());
+				return new VarDotAutocompletions(c.getField(name).getType().getName());
+			} catch (Exception e) {
+				print("Could not find method or field " + name + " in class " + className);
+			}
 		}
 		if (right instanceof Call) {
-			// Recursive, to parse e.g. imp.getProcessor().getPixels()
-			// to figure out what class is imp (if known), what class getProcessor returns,
-			// and then what class getPixels returns.
-			// And to handle also IJ.getImage()
+			// e.g. a method call, in particular the last one in the chain
+			// imp = IJ.getImage().getProcessor()
 			final Call call = (Call)right;
-			// Determine the class of the first element
-			final String first = call.getChild(0).getNode().toString(); // e.g. IJ in IJ.getImage(), or "imp" in imp.getProcessor().getPixels()
-			print("first is: " + first);
-			final DotAutocompletions da = scope.find(first, null);
-			if (null == da) return EmptyDotAutocompletions.instance();
-			String className = da.getClassname();
-			if (null == className) return EmptyDotAutocompletions.instance();
-			print("first class is: " + className);
-			// Determine the return class of the method invoked
-			PyObject func = call.getFunc();
-			print("**** func class: " + func.getClass());
-			if (func instanceof Attribute) {
-				// The first attribute is the last in e.g. imp.getProcessor().getPixels(), so it's "getPixels"
-				Attribute attr = (Attribute)func;
-				final LinkedList<String> calls = new LinkedList<>();
-				calls.add(attr.getInternalAttr());
-				PyObject value = attr.getValue();
-				while (value instanceof Call) {
-					final Call c = (Call)value;
-					func = c.getFunc();
-					print (" chained call: " + func);
-					if (func instanceof Attribute) {
-						attr = (Attribute)func;
-						final String methodName = attr.getInternalAttr();
-						calls.addFirst(methodName);
-						value = attr.getValue();
-					} else if (func instanceof Name) {
-						// A field? TODO test
-						print(" ~~~~ func is " + func.toString());
-						break;
-					}
-				}
-				print("### calls: " + String.join(".", calls));
-				print("### className: " + className);
-				// Discover class of returned object
-				for (final String name: calls) {
-					print(" ---- className: " + className + " to search for name: " + name);
-					try {
-						String found = null;
-						for (final Method m : Class.forName(className).getMethods()) {
-							if (m.getName().equals(name)) {
-								found = m.getReturnType().getName();
-								break;
-							}
-						}
-						print("    found method return type: " + found);
-						if (null == found) {
-							found = Class.forName(className).getField(name).getType().getName();
-						}
-						className = found;
-					} catch (Exception e) {
-						System.out.println("Failed at retrieving methods or field for class " + className);
-						e.printStackTrace();
-						return EmptyDotAutocompletions.instance();
-					}
-				}
-				return new VarDotAutocompletions(className);
-			} else if (func instanceof Name) {
-				print("is Name: " + ((Name)func).getNode().toString());
-				// invocation of a function or constructor, e.g: the name is ip = ByteProcessor(512, 512)
-				return scope.find(((Name)func).getInternalId(), EmptyDotAutocompletions.instance());
-			}
-			print("call: children -- " +  String.join(", ", call.getChildren().stream().map(n -> n.getNode().toString()).collect(Collectors.toList())));
+			return parseRight(call.getFunc(), scope); // getFunc() returns an Attribute or a Name
 		}
-		// TODO return autocompletions fpr python objects like tuple, list, dictionary, set, etc.
 		
-		// E.g. a Tuple in a function return
-		return new VarDotAutocompletions(right.getClass().getName()); // TODO likely this is the wrong class
+		return DotAutocompletions.EMPTY;
 	}
 
 	static public final void print(Object s) {
