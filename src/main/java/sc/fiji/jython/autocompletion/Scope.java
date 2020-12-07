@@ -88,7 +88,6 @@ public class Scope {
 			System.out.println("scope global:");
 		}
 		for (final Map.Entry<String, DotAutocompletions> e: vars.entrySet()) {
-			if (null != parent && parent.vars.containsKey(e.getKey())) continue; // to print only the newly added ones
 			System.out.println(indent + "var :: " + e.getKey() + " = " + e.getValue());
 		}
 		
