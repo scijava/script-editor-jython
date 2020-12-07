@@ -148,6 +148,13 @@ public class JythonScriptParser {
 		parent.vars.put(name, new DefVarDotAutocompletions(name, returnClassName, argumentNames));
 	}
 	
+	/**
+	 * Adds an entry to the parent scope with the classname, e.g. Volume, with its parameters,
+	 * and adds another entry in the class scope for "self" with all the class method names.
+	 * 
+	 * @param c
+	 * @param parent
+	 */
 	static public void parseClassDef(final ClassDef c, final Scope parent) {
 		final String pyClassname = c.getInternalName();
 		final Scope class_scope = parseNode(c.getChildren(), parent, true);
