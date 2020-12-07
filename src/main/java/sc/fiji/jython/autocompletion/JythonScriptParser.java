@@ -46,7 +46,7 @@ public class JythonScriptParser {
 			"  imp = ImagePlus('new', ByteProcessor(w, h))",
 			"  return imp",
 			"def setRoi(an_imp):",
-			"  ip = an_imp.getStack().getProcessor(3)",
+			"  ip = an_imp.getStack().getProcessor(3)", // unknowable: derives from an untyped argument
 			"  pixels = ip.");
 	
 	/**
@@ -105,6 +105,7 @@ public class JythonScriptParser {
 		return classes;
 	}
 	
+	// TODO: enable e.g. "self.msg = 'hi'" to work correctly, adding "msg" as a possible autocompletion for "self."
 	static public Map<String, DotAutocompletions> parseAssignStatement(final Assign assign, final Scope scope) {
 		final Map<String, DotAutocompletions> assigns = new HashMap<>();
 		//final expr right = assign.getInternalValue(); // strangely this works
