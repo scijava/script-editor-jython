@@ -1,9 +1,13 @@
 package sc.fiji.jython.autocompletion;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.python.indexer.Indexer;
 
 
 public class Scope {
@@ -12,6 +16,9 @@ public class Scope {
 	final List<Scope> children = new ArrayList<>();
 	final HashMap<String, DotAutocompletions> imports = new HashMap<>();
 	final HashMap<String, DotAutocompletions> vars = new HashMap<>();
+	
+	// Access to jython's builtins (functions in the global scope) and default modules (array, itertools, csv, etc.)
+	static final Indexer indexer = new Indexer();
 	
 	public Scope(final Scope parent) {
 		this(parent, false);
@@ -38,6 +45,15 @@ public class Scope {
 			if (null != da) return da;
 			scope = scope.parent;
 		}
+		// Check python builtins
+		final String builtin_className = "__builtin__." + name + ".";
+		final List<String> dotAutocompletions = indexer.getBindings().keySet().stream()
+				.filter(s -> s.startsWith(builtin_className))
+				.map(s -> s.substring(builtin_className.length()))
+				.collect(Collectors.toList());
+		if (!dotAutocompletions.isEmpty())
+			return new ClassDotAutocompletions(name, Collections.emptyList(), Collections.emptyList(), dotAutocompletions);
+		
 		return default_value;
 	}
 	
@@ -69,19 +85,6 @@ public class Scope {
 		if (children.isEmpty()) return this;
 		return children.get(children.size() -1).getLast();
 	}
-	
-	/*
-	public void putFunctionDef(final List<String> def) {
-		if (is_class) {
-			// TODO: add as a possible autocompletion of "self"
-			if (this.vars.containsKey("self")) {
-				
-			}
-		} else {
-			this.vars.put(def.get(0), def.subList(1, def.size()).stream().reduce((a,  s) -> a + "," + s).get());
-		}
-	}
-	*/
 	
 	public void print(final String indent) {
 		if ("" == indent) {

@@ -6,13 +6,10 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.python.indexer.Indexer;
 import org.python.indexer.types.NModuleType;
 
 public class StaticDotAutocompletions implements DotAutocompletions
-{
-	final private Indexer indexer = new Indexer();
-	
+{	
 	final String className;
 	public StaticDotAutocompletions(final String className) {
 		this.className = className;
@@ -27,7 +24,7 @@ public class StaticDotAutocompletions implements DotAutocompletions
 		if (null != this.className) {
 			try {
 				// Check first if it's a python module from the builtin set
-				final NModuleType module = indexer.builtins.get(this.className);
+				final NModuleType module = Scope.indexer.builtins.get(this.className);
 				if (null != module) {
 					ac.addAll(module.getTable().keySet());
 					return ac;

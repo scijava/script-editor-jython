@@ -173,7 +173,6 @@ public class JythonScriptParser {
 			else
 				superclassNames.add(da.getClassname());
 		}
-		print("CLASS: " + String.join(", ", c.getInternalBases().stream().map(expr -> expr.getText()).collect(Collectors.toList())));
 		// Search for the constructor __init__ if any
 		final List<String> argumentNames = new ArrayList<>();
 		for (final PythonTree child: c.getChildren()) {

@@ -15,6 +15,7 @@ public class JythoScriptParserTest {
 			"ip = imp.getProcessor()",
 			"width, height = imp.getWidth(), imp.getHeight()",
 			"imp2 = imp",
+			"name = str(imp)", // test builtin function
 			"class Volume(VirtualStack):",
 			"  def __init__(self):",
 			"    self.msg = 'hi'",
