@@ -57,6 +57,26 @@ public class Scope {
 		return default_value;
 	}
 	
+	public List<String> findStartsWith(final String name) {
+		final List<String> completions = new ArrayList<>();
+		Scope scope = this;
+		while (null != scope) {
+			for (final String varName: scope.vars.keySet()) {
+				if (varName.startsWith(name)) completions.add(varName);
+			}
+			for (final String importName: scope.imports.keySet()) {
+				if (importName.startsWith(name)) completions.add(importName);
+			}
+			for (String builtinName: indexer.getBindings().keySet()) {
+				builtinName = builtinName.substring(12); // without the "__builtin__." prefix
+				if (builtinName.startsWith(name)) completions.add(builtinName);
+			}
+			scope = scope.parent;
+		}
+		return completions;
+	}
+	
+	
 	public HashMap<String, DotAutocompletions> getImports() {
 		final HashMap<String, DotAutocompletions> imports = new HashMap<>(this.imports);
 		Scope parent = this.parent;
