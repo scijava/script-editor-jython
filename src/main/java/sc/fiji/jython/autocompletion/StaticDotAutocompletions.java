@@ -24,7 +24,7 @@ public class StaticDotAutocompletions implements DotAutocompletions
 		if (null != this.className) {
 			try {
 				// Check first if it's a python module from the builtin set
-				final NModuleType module = Scope.indexer.builtins.get(this.className);
+				final NModuleType module = Scope.indexer.loadModule(this.className); // Scope.indexer.getBuiltinModule(this.className);
 				if (null != module) {
 					ac.addAll(module.getTable().keySet());
 					return ac;
