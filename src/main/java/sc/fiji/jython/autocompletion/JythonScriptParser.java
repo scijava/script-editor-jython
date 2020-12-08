@@ -37,10 +37,8 @@ public class JythonScriptParser {
 	static public Scope parseAST(final String code) {
 		// The code includes from beginning of the file until the point at which an autocompletion is requested.
 		// Therefore, remove the last line, which would fail to parse because it is incomplete
-		final int lastLineBreak = code.lastIndexOf("\n");
-		final String codeToParse = -1 == lastLineBreak ? code : code.substring(0, lastLineBreak);
 		try {
-			final mod m = ParserFacade.parse(codeToParse, CompileMode.exec, "<none>", new CompilerFlags());
+			final mod m = ParserFacade.parse(code, CompileMode.exec, "<none>", new CompilerFlags());
 			return parseNode(m.getChildren(), null, false);
 		} catch (Throwable t) {
 			return new Scope(null);

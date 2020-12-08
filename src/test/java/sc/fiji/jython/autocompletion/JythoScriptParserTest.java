@@ -34,7 +34,9 @@ public class JythoScriptParserTest {
 	static public final void main(String[] args) {
 		try {
 			JythonScriptParser.DEBUG = true;
-			JythonScriptParser.parseAST(testCode).print("");
+			final int lastLineBreak = testCode.lastIndexOf("\n");
+			final String codeToParse = -1 == lastLineBreak ? testCode : testCode.substring(0, lastLineBreak);
+			JythonScriptParser.parseAST(codeToParse).print("");
 		} catch (Exception e) {
 			e.printStackTrace();
 			if (null != e.getCause())
