@@ -28,6 +28,7 @@ import org.python.core.CompileMode;
 import org.python.core.CompilerFlags;
 import org.python.core.ParserFacade;
 import org.python.core.PyObject;
+import org.python.indexer.types.NModuleType;
 
 public class JythonScriptParser {
 	
@@ -246,6 +247,14 @@ public class JythonScriptParser {
 				return new VarDotAutocompletions(c.getField(name).getType().getName());
 			} catch (Exception e) {
 				print("Could not find method or field " + name + " in class " + className);
+			}
+			// Could also be a python module, e.g. attempting to autocomplete "os.path."
+			try {
+				final NModuleType module = Scope.indexer.loadModule(className + "." + name); // overly expensive: any way to check it exists without loading it?
+				if (null != module)
+					return new StaticDotAutocompletions(className  + "." + name);
+			} catch (Exception e) {
+				print("Not a python module: " + className + "." + name);
 			}
 		}
 		if (right instanceof Call) {
