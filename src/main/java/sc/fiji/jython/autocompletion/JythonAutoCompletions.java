@@ -9,18 +9,21 @@ import java.util.stream.Collectors;
 import org.fife.ui.autocomplete.BasicCompletion;
 import org.fife.ui.autocomplete.Completion;
 import org.fife.ui.autocomplete.CompletionProvider;
-import  org.scijava.ui.swing.script.autocompletion.AutoCompletionListener;
+import org.scijava.ui.swing.script.autocompletion.AutoCompletionListener;
 import org.scijava.ui.swing.script.autocompletion.JythonAutocompletionProvider;
 
 public class JythonAutoCompletions implements AutoCompletionListener
 {
 	static {
+		// Register as listener for jython autocompletions
 		JythonAutocompletionProvider.addAutoCompletionListener(new JythonAutoCompletions());
 	}
 	
 	static private final Pattern assign = Pattern.compile("^([ \\t]*)(([a-zA-Z_][a-zA-Z0-9_ \\t,]*)[ \\t]+=[ \\t]+(.*))$"),
 						         nameToken = Pattern.compile("^(.*?[ \\t]+|)([a-zA-Z_][a-zA-Z0-9_]+)$"),
 						         dotNameToken = Pattern.compile("^(.*?[ \\t]+|)([a-zA-Z0-9_\\.\\[\\](){}]+)\\.([a-zA-Z0-9_]*)$");
+	
+	public JythonAutoCompletions() {}
 	
 	@Override
 	public List<Completion> completionsFor(final CompletionProvider provider, final String codeWithoutLastLine, final String lastLine, final String alreadyEnteredText) {
@@ -59,19 +62,20 @@ public class JythonAutoCompletions implements AutoCompletionListener
 				final String[] assignment = lastLine.split("=");
 				final String[] names = assignment[0].split(",");
 				varName = names[names.length -1].trim();
-				code = codeWithoutLastLine  + lastLine.substring(0, lastLine.length() -1); // without the ending dot
+				code = codeWithoutLastLine  + lastLine.substring(0, lastLine.length() -1 - seed.length()); // without the ending dot and the seed
 			} else {
-				// Not an assignment, i.e.  "imp.getImage()."
+				// Not an assignment, i.e.  "imp.getImage()." or "imp."
 				// Find first non-whitespace char
 				int start = 0;
 				while (Character.isWhitespace(lastLine.charAt(start++)));
-				varName = "____GRAB____"; // an injected var to capture the class
-				code = codeWithoutLastLine + lastLine.substring(0, start) + varName + " = " + lastLine.substring(start);
+				--start;
+				varName = "____GRAB____"; // an injected var to capture the returned class
+				code = codeWithoutLastLine + lastLine.substring(0, start) + varName + " = " + lastLine.substring(start, lastLine.length() - 1 - seed.length());
 			}
 			final DotAutocompletions da = JythonScriptParser.parseAST(code).getLast().find(varName, DotAutocompletions.EMPTY);
 			return da.get().stream()
 					.filter(s -> s.startsWith(seed))
-					.map(s -> new BasicCompletion(provider, (lastLine + s).substring(crop), null, da.getClassname()))
+					.map(s -> new BasicCompletion(provider, lastLine.substring(crop) + s.substring(seed.length()), null, da.getClassname()))
 					.collect(Collectors.toList());
 		}
 		
