@@ -15,6 +15,7 @@ import org.python.antlr.ast.ClassDef;
 import org.python.antlr.ast.FunctionDef;
 import org.python.antlr.ast.ImportFrom;
 import org.python.antlr.ast.Name;
+import org.python.antlr.ast.Num;
 import org.python.antlr.ast.Return;
 import org.python.antlr.ast.Tuple;
 import org.python.antlr.base.expr;
@@ -202,6 +203,11 @@ public class JythonScriptParser {
 			// e.g. the name of a constructor or a function
 			// ip = ByteProcessor(512, 512)
 			return scope.find( ((Name)right).getInternalId(), DotAutocompletions.EMPTY);
+		}
+		if (right instanceof Num) {
+			// e.g. return 10
+			// e.g. n = 42
+			return new VarDotAutocompletions(((Num)right).getInternalN().getClass().getName());
 		}
 		if (right instanceof Attribute) {
 			// e.g. a field or a method
