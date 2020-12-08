@@ -46,7 +46,7 @@ public class Scope {
 			scope = scope.parent;
 		}
 		// Check python builtins
-		final String builtin_className = "__builtin__." + name + ".";
+		final String builtin_className = "__builtin__." + name + "."; // e.g. __builtin__.str.join
 		final List<String> dotAutocompletions = indexer.getBindings().keySet().stream()
 				.filter(s -> s.startsWith(builtin_className))
 				.map(s -> s.substring(builtin_className.length()))
@@ -68,7 +68,8 @@ public class Scope {
 				if (importName.startsWith(name)) completions.add(importName);
 			}
 			for (String builtinName: indexer.getBindings().keySet()) {
-				builtinName = builtinName.substring(12); // without the "__builtin__." prefix
+				if (builtinName.startsWith("__builtin__."))
+					builtinName = builtinName.substring(12); // without the "__builtin__." prefix
 				if (builtinName.startsWith(name)) completions.add(builtinName);
 			}
 			scope = scope.parent;
