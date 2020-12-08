@@ -14,11 +14,13 @@ import org.python.antlr.ast.Attribute;
 import org.python.antlr.ast.Call;
 import org.python.antlr.ast.ClassDef;
 import org.python.antlr.ast.FunctionDef;
+import org.python.antlr.ast.Import;
 import org.python.antlr.ast.ImportFrom;
 import org.python.antlr.ast.Name;
 import org.python.antlr.ast.Num;
 import org.python.antlr.ast.Return;
 import org.python.antlr.ast.Tuple;
+import org.python.antlr.ast.alias;
 import org.python.antlr.ast.arguments;
 import org.python.antlr.base.expr;
 import org.python.antlr.base.mod;
@@ -66,7 +68,9 @@ public class JythonScriptParser {
 			print(child.getClass());
 			
 			if (child instanceof ImportFrom)
-				scope.imports.putAll(parseImportStatement( (ImportFrom)child ));
+				scope.imports.putAll(parseImportFromStatement( (ImportFrom)child ));
+			else if (child instanceof Import)
+				scope.imports.putAll(parseImportStatement((Import)child));
 			else if (child instanceof Assign)
 				scope.vars.putAll(parseAssignStatement( (Assign)child, scope ));
 			else if (child instanceof FunctionDef)
@@ -86,13 +90,24 @@ public class JythonScriptParser {
 	 * @param im
 	 * @return A map of simple class names or their aliases as keys versus a {@code DotAutocompletions} as value. 
 	 */
-	static public Map<String, DotAutocompletions> parseImportStatement(final ImportFrom im) {
+	static public Map<String, DotAutocompletions> parseImportFromStatement(final ImportFrom im) {
 		final Map<String, DotAutocompletions> classes = new HashMap<>();
 		final String module = im.getModule().toString();
 		for (int i=0; i<im.getNames().__len__(); ++i) {
 			final String alias = im.getInternalNames().get(i).getAsname().toString(); // alias: as name
 			final String simpleClassName = im.getInternalNames().get(i).getInternalName(); // class name
 			classes.put("None" == alias ? simpleClassName : alias, new StaticDotAutocompletions(module + "." + simpleClassName));
+		}
+		return classes;
+	}
+	
+	static public Map<String, DotAutocompletions> parseImportStatement(final Import im) {
+		final Map<String, DotAutocompletions> classes = new HashMap<>();
+		final List<alias> aliases = im.getInternalNames();
+		for (final alias a: aliases) {
+			final String as = a.getInternalAsname();
+			final String name = a.getInternalName();
+			classes.put(null == as || "None" == as ? name : as, new StaticDotAutocompletions(name));
 		}
 		return classes;
 	}
