@@ -23,7 +23,11 @@ public class JythonAutoCompletions implements AutoCompletionListener
 						         dotNameToken = Pattern.compile("^(.*?[ \\t]+|)([a-zA-Z0-9_\\.\\[\\](){}]+)\\.([a-zA-Z0-9_]*)$");
 	
 	@Override
-	public List<Completion> completionsFor(final CompletionProvider provider, final String codeWithoutLastLine, final String lastLine) {
+	public List<Completion> completionsFor(final CompletionProvider provider, final String codeWithoutLastLine, final String lastLine, final String alreadyEnteredText) {
+		
+		// Replacing of text will start at crop, given the already entered text that is considered for replacement
+		final int crop = lastLine.length() - alreadyEnteredText.length();
+		
 		// Query the lastLine to find out what needs autocompletion
 		
 		// Preconditions: can't expand when ending with any of: "()[]{},; "
@@ -38,7 +42,7 @@ public class JythonAutoCompletions implements AutoCompletionListener
 		final Matcher m1 = nameToken.matcher(lastLine);
 		if (m1.find())
 			return JythonScriptParser.parseAST(codeWithoutLastLine).getLast().findStartsWith(m1.group(2)).stream()
-					.map(s -> new BasicCompletion(provider, lastLine + s.substring(m1.group(2).length())))
+					.map(s -> new BasicCompletion(provider, (lastLine + s.substring(m1.group(2).length())).substring(crop)))
 					.collect(Collectors.toList());
 		
 		final Matcher m2 = dotNameToken.matcher(lastLine);
@@ -67,7 +71,7 @@ public class JythonAutoCompletions implements AutoCompletionListener
 			final DotAutocompletions da = JythonScriptParser.parseAST(code).getLast().find(varName, DotAutocompletions.EMPTY);
 			return da.get().stream()
 					.filter(s -> s.startsWith(seed))
-					.map(s -> new BasicCompletion(provider, lastLine + s, da.getClassname(), "From class " + da.getClassname()))
+					.map(s -> new BasicCompletion(provider, (lastLine + s).substring(crop), null, da.getClassname()))
 					.collect(Collectors.toList());
 		}
 		
