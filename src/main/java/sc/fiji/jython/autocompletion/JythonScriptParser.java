@@ -44,6 +44,7 @@ public class JythonScriptParser {
 			final mod m = ParserFacade.parse(code, CompileMode.exec, "<none>", new CompilerFlags());
 			return parseNode(m.getChildren(), null, false);
 		} catch (Throwable t) {
+			t.printStackTrace();
 			return new Scope(null);
 		}
 	}
