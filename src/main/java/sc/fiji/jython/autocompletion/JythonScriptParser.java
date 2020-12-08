@@ -183,13 +183,13 @@ public class JythonScriptParser {
 			if (!(child instanceof FunctionDef)) continue;
 			final FunctionDef fn = (FunctionDef)child;
 			if ("__init__".equals(fn.getInternalName())) {
-				final List<PythonTree> children = fn.getInternalArgs().getChildren();
-				if (children.size() > 0) {
+				final List<PythonTree> args = fn.getInternalArgs().getChildren();
+				if (args.size() > 0) {
 					// Add all arguments except the first one, which is the internal reference conventionally named "self"
-					argumentNames.addAll(children.subList(1, children.size()).stream()
+					argumentNames.addAll(args.subList(1, args.size()).stream()
 						.map(arg -> arg.getNode().toString()).collect(Collectors.toList()));
 					// Use the first argument
-					class_scope.vars.put(children.get(0).getNode().toString(), new ClassDotAutocompletions(pyClassname, superclassNames, argumentNames, classDotAutocompletions));
+					class_scope.vars.put(args.get(0).getNode().toString(), new ClassDotAutocompletions(pyClassname, superclassNames, argumentNames, classDotAutocompletions));
 				}
 				break;
 			}
