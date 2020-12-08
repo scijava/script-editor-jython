@@ -2,6 +2,7 @@ package sc.fiji.jython.autocompletion;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import org.python.antlr.ast.Name;
 import org.python.antlr.ast.Num;
 import org.python.antlr.ast.Return;
 import org.python.antlr.ast.Tuple;
+import org.python.antlr.ast.arguments;
 import org.python.antlr.base.expr;
 import org.python.antlr.base.mod;
 import org.python.core.CompileMode;
@@ -133,9 +135,11 @@ public class JythonScriptParser {
 	static public void parseFunctionDef(final FunctionDef fn, final Scope parent) {
 		// Get the function name
 		final String name = fn.getInternalName();
-		// Get the list of argument names
-		final List<String> argumentNames = fn.getInternalArgs().getChildren().stream()
-				.map(arg -> arg.getNode().toString()).collect(Collectors.toList());
+		// Get the list of argument names, if any
+		arguments args = fn.getInternalArgs();
+		final List<String> argumentNames = args != null && args.getChildren() != null ? // why oh why not return an empty List<PythonTree>
+				args.getChildren().stream().map(arg -> arg.getNode().toString()).collect(Collectors.toList())
+				: Collections.emptyList();
 		// Parse the function body
 		final Scope fn_scope = parseNode(fn.getChildren(), parent, false);
 		// Get the return type, if any
