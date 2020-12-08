@@ -13,7 +13,7 @@ import org.python.indexer.Indexer;
 public class Scope {
 	final Scope parent;
 	final boolean is_class;
-	final List<Scope> children = new ArrayList<>();
+	final private List<Scope> children = new ArrayList<>();
 	final HashMap<String, DotAutocompletions> imports = new HashMap<>();
 	final HashMap<String, DotAutocompletions> vars = new HashMap<>();
 	
@@ -42,7 +42,8 @@ public class Scope {
 			DotAutocompletions da = scope.vars.get(name);
 			if (null == da)
 				da = scope.imports.get(name);
-			if (null != da) return da;
+			if (null != da)
+				return da;
 			scope = scope.parent;
 		}
 		// Check python builtins
@@ -109,12 +110,16 @@ public class Scope {
 	
 	public void print(final String indent) {
 		if ("" == indent) {
-			for (final Map.Entry<String, DotAutocompletions> e: imports.entrySet())
-				System.out.println(indent + "import :: " + e.getKey() + " --> " + e.getValue());
 			System.out.println("scope global:");
 		}
+		System.out.println(indent + "available imports: " + String.join(", ", this.getImports().keySet()));
+		System.out.println(indent + "declared imports:");
+		for (final Map.Entry<String, DotAutocompletions> e: imports.entrySet())
+			System.out.println(indent + "  import :: " + e.getKey() + " --> " + e.getValue());
+		System.out.println(indent + "available vars: " + String.join(", ", this.getVars().keySet()));
+		System.out.println(indent + "declared vars:");
 		for (final Map.Entry<String, DotAutocompletions> e: vars.entrySet()) {
-			System.out.println(indent + "var :: " + e.getKey() + " = " + e.getValue());
+			System.out.println(indent + "  var :: " + e.getKey() + " = " + e.getValue());
 		}
 		
 		int i = 0;
