@@ -86,6 +86,7 @@ public class Scope {
 				return null;
 			}
 			try {
+				// TODO: if it's an __init__.py, must watch ALL THE FILES in the containing directly
 				final String filepath = indexer.getLoadedFiles().stream()
 						.filter(s -> s.endsWith("/" + qname + ".py") || s.endsWith("/" + qname + "/__init__.py")).findFirst().get();
 				if (null != filepath) {
@@ -99,7 +100,7 @@ public class Scope {
 				}
 			} catch (Exception e) {
 				System.out.println("Could not load python module named " + qname);
-				e.printStackTrace();
+				System.out.println(e.getMessage());
 			}
 			return mod;
 		}
