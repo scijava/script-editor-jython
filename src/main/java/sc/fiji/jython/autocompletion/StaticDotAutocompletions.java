@@ -23,10 +23,12 @@ public class StaticDotAutocompletions implements DotAutocompletions
 		final List<String> ac = new ArrayList<>();
 		if (null != this.className) {
 			try {
-				// Check first if it's a python module from the builtin set
-				final NModuleType module = Scope.indexer.loadModule(this.className); // Scope.indexer.getBuiltinModule(this.className);
+				// Check first if it's a python module
+				final NModuleType module = Scope.loadPythonModule(this.className); // Scope.indexer.getBuiltinModule(this.className);
 				if (null != module) {
 					ac.addAll(module.getTable().keySet());
+					// Not need to remove: a file system watcher will do so when the module file is updated or deleted.
+					// Scope.indexer.moduleTable.remove(this.className);
 					return ac;
 				}
 				// Or a java class:

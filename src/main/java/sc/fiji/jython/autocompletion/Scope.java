@@ -1,13 +1,21 @@
 package sc.fiji.jython.autocompletion;
 
+import java.io.File;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.python.indexer.Indexer;
+import org.python.indexer.types.NModuleType;
 
 
 public class Scope {
@@ -17,8 +25,85 @@ public class Scope {
 	final HashMap<String, DotAutocompletions> imports = new HashMap<>();
 	final HashMap<String, DotAutocompletions> vars = new HashMap<>();
 	
-	// Access to jython's builtins (functions in the global scope) and default modules (array, itertools, csv, etc.)
+	/** Access to jython's builtins (functions in the global scope) and default modules (array, itertools, csv, etc.)
+	 *  as well as to an other user-defined modules.
+	 */
 	static final Indexer indexer = new Indexer();
+	
+	static private Thread module_watcher;
+	static private WatchService watcher;
+	static private Hashtable<WatchKey, Path> keys = new Hashtable<>();
+	
+	static {
+		try {
+			watcher = FileSystems.getDefault().newWatchService();
+			module_watcher = new Thread() {
+				@Override
+				public void run() {
+					while (true) {
+						WatchKey key = null;
+						try {
+							key = watcher.take(); // waits until there is an event
+						} catch (InterruptedException x) {
+							return;
+						}
+						if (keys.containsKey(key)) {
+							System.out.println("Python module at:\n" + keys.get(key) + "\n ... was updated. Clearing indexer cache.");
+							// One of the files changed: unload all, given that parent modules would have been loaded as well
+							// and it gets complicated quickly to find out which need to be reloaded and which don't.
+							keys.clear();
+							synchronized (indexer) {
+								indexer.clearModuleTable();
+							}
+						}
+					}
+				}
+			};
+			module_watcher.setPriority(Thread.NORM_PRIORITY);
+			module_watcher.start();
+		} catch (Exception e ){
+			System.out.println("Failed to start filesystem watcher service for python modules");
+		}
+	}
+	
+	/**
+	 * Load a python module and watch its file, if any.
+	 * When the file is updated or deleted, all loaded modules will be removed from the cache,
+	 * because the loading of a module may trigger the loading of a parent module
+	 * or additional modules that it links to.
+	 * 
+	 * @param qname
+	 * @return The python module.
+	 */
+	static NModuleType loadPythonModule(final String qname) {
+		synchronized (indexer) {
+			NModuleType mod = null;
+			try {
+				mod = indexer.loadModule(qname);
+			} catch (Exception e) {
+				System.out.println("Could not load python module named " + qname);
+				e.printStackTrace();
+				return null;
+			}
+			try {
+				final String filepath = indexer.getLoadedFiles().stream()
+						.filter(s -> s.endsWith("/" + qname + ".py") || s.endsWith("/" + qname + "/__init__.py")).findFirst().get();
+				if (null != filepath) {
+					final Path path = new File(filepath).toPath();
+					final WatchKey key = path.register(watcher,
+							StandardWatchEventKinds.ENTRY_MODIFY,
+							StandardWatchEventKinds.ENTRY_DELETE);
+					keys.put(key, path);
+				} else {
+					System.out.println("Python module " + qname + " doesn't have an associated file path.");
+				}
+			} catch (Exception e) {
+				System.out.println("Could not load python module named " + qname);
+				e.printStackTrace();
+			}
+			return mod;
+		}
+	}
 	
 	public Scope(final Scope parent) {
 		this(parent, false);
