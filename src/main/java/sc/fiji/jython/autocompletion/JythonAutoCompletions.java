@@ -1,5 +1,6 @@
 package sc.fiji.jython.autocompletion;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -22,7 +23,8 @@ public class JythonAutoCompletions implements AutoCompletionListener
 	static private final Pattern assign = Pattern.compile("^([ \\t]*)(([a-zA-Z_][a-zA-Z0-9_ \\t,]*)[ \\t]+=[ \\t]+(.*))$"),
 						         nameToken = Pattern.compile("^(.*?[ \\t]+|)([a-zA-Z_][a-zA-Z0-9_]+)$"),
 						         dotNameToken = Pattern.compile("^(.*?[ \\t]+|)([a-zA-Z0-9_\\.\\[\\](){}]+)\\.([a-zA-Z0-9_]*)$"),
-						     	 endingCode = Pattern.compile("^([ \\t]*)[^#]*?(.*?)[ \\t]*:[ \\t]*(#.*|)[\\n]*$");
+						     	 endingCode = Pattern.compile("^([ \\t]*)[^#]*?(.*?)[ \\t]*:[ \\t]*(#.*|)[\\n]*$"),
+						     	 sysPathAppend = Pattern.compile("sys.path.append[ \\t]*[(][ \\t]*['\"](.*?)['\"][ \\t]*[)]"); // fragile to line breaks in e.g. .append
 	
 	public JythonAutoCompletions() {}
 	
@@ -53,9 +55,23 @@ public class JythonAutoCompletions implements AutoCompletionListener
 			}
 		}
 		
+		// Check if there're any additions to the sys.path to search for custom modules
+		try {
+			final Matcher mpath = sysPathAppend.matcher(codeWithoutLastLine);
+			while (mpath.find()) {
+				final File path = new File(mpath.group(1));
+				if (path.exists() && path.isDirectory() && !Scope.indexer.getLoadPath().stream().filter(s -> path.equals(new File(s))).findFirst().isPresent())
+					Scope.indexer.addPath(path.getAbsolutePath());
+			}
+			JythonScriptParser.print("PYTHONPATH:\n" + String.join("\n", Scope.indexer.getLoadPath()));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		// Two situations to autocomplete:
 		// 1) a plain name: delimited with space (or none) to the left, and without parentheses.
 		// 2) a method or field: none or some text after a period.
+		// 3) an python module import: TODO
 
 		final Matcher m1 = nameToken.matcher(lastLine);
 		if (m1.find())

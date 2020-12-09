@@ -9,6 +9,8 @@ public class JythoScriptParserTest {
 			"from ij.IJ import getImage", // example of static import of a function (i.e. using the java class like a namespace, and static methods like functions): should not have any expansions
 			"from ij import IJ, ImageJ as IJA, VirtualStack, ImagePlus",
 			"from ij.process import ByteProcessor",
+			"import sys",
+			"sys.path.append(\"/path/to/custom/modules/\")",
 			"grey8 = IJ.getImage().GRAY8", // static field but should work
 			"pixels = IJ.getImage().getProcessor().getPixels()",
 			"imp = IJ.getImage()",
