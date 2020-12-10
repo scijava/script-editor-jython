@@ -210,7 +210,7 @@ public class JythonScriptParser {
 				break;
 			}
 		}
-		parent.vars.put(pyClassname, new DefVarDotAutocompletions(pyClassname, pyClassname, argumentNames));
+		parent.vars.put(pyClassname, new ClassDotAutocompletions(pyClassname, superclassNames, argumentNames, classDotAutocompletions));
 	}
 	
 	/** Discover the class returned by the right statement in an assignment.
