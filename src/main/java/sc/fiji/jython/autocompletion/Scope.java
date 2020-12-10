@@ -41,6 +41,7 @@ public class Scope {
 				@Override
 				public void run() {
 					while (true) {
+						if (isInterrupted()) return;
 						WatchKey key = null;
 						try {
 							key = watcher.take(); // waits until there is an event
@@ -86,11 +87,12 @@ public class Scope {
 				return null;
 			}
 			try {
-				// TODO: if it's an __init__.py, must watch ALL THE FILES in the containing directly
+				// Watch ALL THE FILES in the containing directly
+				final String qname_slash = qname.replace(".", "/");
 				final String filepath = indexer.getLoadedFiles().stream()
-						.filter(s -> s.endsWith("/" + qname + ".py") || s.endsWith("/" + qname + "/__init__.py")).findFirst().get();
+						.filter(s -> s.endsWith("/" + qname_slash + ".py") || s.endsWith("/" + qname_slash + "/__init__.py")).findFirst().orElse(null);
 				if (null != filepath) {
-					final Path path = new File(filepath).toPath();
+					final Path path = new File(filepath).getParentFile().toPath(); // watching directories
 					final WatchKey key = path.register(watcher,
 							StandardWatchEventKinds.ENTRY_MODIFY,
 							StandardWatchEventKinds.ENTRY_DELETE);
@@ -101,6 +103,7 @@ public class Scope {
 			} catch (Exception e) {
 				System.out.println("Could not load python module named " + qname);
 				System.out.println(e.getMessage());
+				e.printStackTrace();
 			}
 			return mod;
 		}
