@@ -1,13 +1,19 @@
 package sc.fiji.jython.autocompletion;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.fife.ui.autocomplete.BasicCompletion;
 import org.fife.ui.autocomplete.Completion;
@@ -28,8 +34,46 @@ public class JythonAutoCompletions implements AutoCompletionListener
 						         dotNameToken = Pattern.compile("^(.*?[ \\t]+|)([a-zA-Z0-9_\\.\\[\\](){}]+)\\.([a-zA-Z0-9_]*)$"),
 						     	 endingCode = Pattern.compile("^([ \\t]*)[^#]*?(.*?)[ \\t]*:[ \\t]*(#.*|)[\\n]*$"),
 						     	 sysPathAppend = Pattern.compile("sys.path.append[ \\t]*[(][ \\t]*['\"](.*?)['\"][ \\t]*[)]"), // fragile to line breaks in e.g. .append
-						    	 importStatement = Pattern.compile("^((from[ \\t]+([a-zA-Z0-9._]+)[ \\t]+|[ \\t]*)import[ \\t]+)([a-zA-Z0-9_., \\t]*)$");
+						    	 importPkg = Pattern.compile("^(import|from)[ \\t]+([a-zA-Z_][a-zA-Z0-9._]*)$"),
+								 importMember = Pattern.compile("^from[ \\t]+([a-z_][a-zA-Z0-9_.]*)[ \\t]+import[ \\t]*([a-zA-Z0-9_]*)$");
 
+	static public final List<String> jython_jar_modules;
+	
+	static {
+		List<String> ls = Collections.emptyList();
+		try {
+			ls = Files.walk(new File(System.getProperty("ij.dir") + "/jars/").toPath())
+				.filter(path -> path.toFile().getName().startsWith("jython-slim-")) // path.getFileName() doesn't start with ... but prints as if it does ???
+				.map(new Function<Path, List<String>>() {
+					@Override
+					public List<String> apply(final Path filepath) {
+						JarFile jar = null;
+						try {
+							jar = new JarFile(filepath.toString());
+							final List<String> modules = jar.stream()
+									.map(JarEntry::getName)
+									.filter(s -> s.startsWith("Lib/") && s.endsWith(".py"))
+									.map(s -> (s.endsWith("/__init__.py") ?
+											  s.substring(4, s.length() - 12) // the parent folder
+											: s.substring(4, s.length() - 3)) // avoid the .py extension
+											.replace('/', '.'))
+									.collect(Collectors.toList());
+							return modules;
+						} catch (Exception e) {
+							e.printStackTrace();
+						} finally {
+							if (null != jar) try { jar.close(); } catch (Exception ee) {}
+						}
+						return Collections.emptyList();
+					}
+				}).findFirst().orElse(Collections.emptyList());
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			jython_jar_modules = ls;
+		}
+	}
+	
 	
 	public JythonAutoCompletions() {}
 	
@@ -79,82 +123,73 @@ public class JythonAutoCompletions implements AutoCompletionListener
 		// 1) a plain name: delimited with space (or none) to the left, and without parentheses.
 		// 2) a method or field: none or some text after a period.
 		
-		final Matcher m4 = importStatement.matcher(lastLine);
-		if (m4.find()) {
-			JythonScriptParser.print("JythonAutoCompletions matched importStatement for: '" + lastLine + "'");
-			// A python package file has two forms:
-			// 1. module.py  --> must remove the ".py"
-			// 2. module/__init__.py  --> it's enough to use the directory name for loading
-			// And can be nested in subdirectories
-			
-			String g3 = m4.group(3) == null ? "" : m4.group(3), // package name, if any
-				   g4 = m4.group(4) == null ? "" : m4.group(4); // class name or function if any. The empty string will list all
-			
-			if (g3.length() > 0) {
-				// With package name: load the module and search its table of members
-				try {
-					NModuleType mod = Scope.loadPythonModule(g3);
-					// Can be null, or can be loaded successfully and yet contain nothing if e.g. its __init__.py is empty
-					if (null == mod || mod.getTable().isEmpty()) {
-						// Module may be a folder without an __init__.py
-						// Pretend the "from" part was fused with the "import" part
-						g4 = g3 + "." + g4;
-						g3 = "";
-					} else {
-						final String g3f = g3,
-								     g4f = g4;
-						return mod.getTable().keySet().stream().filter(s -> s.startsWith(g4f))
-								.map(name -> new BasicCompletion(provider, "from " + g3f + " import " + name, null, "Python package"))
-								.collect(Collectors.toList());
-					}
-				} catch (Exception e) {
-					System.out.println("Can't find module " + g3);
-					System.out.println(e.getMessage());
-				}
+		final Matcher mi = importPkg.matcher(lastLine);
+		if (mi.find()) {
+			// Complete package name
+			final String first = mi.group(1), // import or from
+			             pkgName = mi.group(2);
+			final ArrayList<Completion> ac = new ArrayList<>();
+			// Find completions among jython's standard library
+			ac.addAll(jython_jar_modules.stream()
+					.filter(s -> s.startsWith(pkgName))
+					.map(s -> new BasicCompletion(provider, first + " " + s + (first.equals("from") ? " import " : ""), null, "Python standard library module"))
+					.collect(Collectors.toList()));
+			// Find completions among sys.path libraries
+			final String pkgNameFile = pkgName.replace('.', '/');
+			ac.addAll(Scope.indexer.getLoadPath().stream()
+					.map(dir -> {
+						try {
+							return Files.walk(new File(dir).toPath(), FileVisitOption.FOLLOW_LINKS)
+									.map(path -> path.toFile().getAbsolutePath())
+									.filter(s -> s.startsWith(dir + pkgNameFile) && s.endsWith(".py"))
+									.map(s -> (s.endsWith("__init__.py") ?
+											  s.substring(dir.length(), s.length() - 12) // remove ending "__init__.py"
+											: s.substring(dir.length(), s.length() -3))  // remove ending ".py"
+											.replace('/', '.'));
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						return null;
+					}).flatMap(Function.identity())
+					.map(s -> new BasicCompletion(provider, first + " " + s + (first.equals("from") ? " import " : ""), null, "Custom python module"))
+					.collect(Collectors.toList()));
+			return ac;
+		}
+		
+		final Matcher mm = importMember.matcher(lastLine);
+		if (mm.find()) {
+			System.out.println("importMember");
+			// Complete member name
+			final String pkgName = mm.group(1),
+					     member = mm.group(2) == null ? "" : mm.group(2);
+			// Check that the module exists
+			final NModuleType mod = Scope.loadPythonModule(pkgName);
+			if (null != mod && !mod.getTable().keySet().isEmpty()) {
+				return mod.getTable().keySet().stream()
+					.filter(s -> s.startsWith(member))
+					.map(s -> new BasicCompletion(provider, "from " + pkgName + " import " + s, null, null)) // todo call "help" on that function
+					.collect(Collectors.toList());
 			}
-			
-			if (0 == g3.length()) {
-				// No separate package name: eg. "import os", or "import os.path" (which is wrong and has to be corrected)
-				final int lastDot = g4.lastIndexOf('.');
-				final String pkgName = -1 == lastDot ? "" : g4.substring(0, lastDot);
-				final String seed = g4.substring(lastDot + 1);
-				
-				// Search builtin modules, e.g datetime, os, csv, array, ...
-				List<Completion> ac = null;
-				try {
-					final String g4f = g4;
-					ac = Scope.indexer.getBindings().keySet().stream()
-						.filter(s -> s.startsWith(g4f))
-						.map(new Function<String, BasicCompletion>() {
-							@Override
-							public BasicCompletion apply(final String s) {
-								final int lastDot = s.lastIndexOf('.');
-								final String imSt = -1 == lastDot ? "import " + s : "from " + s.substring(0, lastDot) + " import " + s.substring(lastDot + 1);
-								return new BasicCompletion(provider, imSt, null, "Python module");
+			if (null != mod) {
+				// Module exists but its __init__.py is empty. Look into its folder
+				final ArrayList<Completion> ac = new ArrayList<>();
+				for (final String dir : Scope.indexer.getLoadPath()) {
+					final File fdir = new File(dir + pkgName.replace('.', '/'));
+					if (fdir.exists() && fdir.isDirectory()) {
+						for (final String filename: fdir.list()) {
+							if (filename.startsWith(member) && (new File(fdir.getAbsolutePath() + "/" + filename).isDirectory() || filename.endsWith(".py"))) {
+								ac.add(new BasicCompletion(provider,
+										"from " + pkgName + " import " + (filename.endsWith(".py") ?
+												filename.substring(0, filename.length() -3)
+												: filename), null, null));
 							}
-						}).collect(Collectors.toList());
-				} catch (Exception e) {
-					System.out.println("Not a builtin module: '" + g4 + "'");
+						}
+					}
 				}
+				return ac;
 				
-				if (!ac.isEmpty())
-					return ac;
-				
-				// If not, then search for files from sys.path
-				return Scope.indexer.getLoadPath().stream()
-						.map(s -> new File(s + pkgName.replace(".", "/")))
-						.filter(f -> f.exists() && f.isDirectory())
-						.map(File::list).flatMap(Stream::of)
-						//.peek(s -> System.out.println("all: " + s))
-						.filter(name -> name.startsWith(seed) && !name.endsWith(".class") && !name.endsWith("~")) // no temp or compiled files
-						//.peek(s -> System.out.println("filtered: " + s))
-						.map(name -> new BasicCompletion(provider,
-								name.endsWith(".py") ? // module that can be loaded
-										(-1 == lastDot ? "" : "from " + pkgName + " ") + "import " + name.substring(0, name.length() - 3)
-										: "from " + (-1 == lastDot ? "" : pkgName + ".") + name + " import ",
-								null, "Python package"))
-						.collect(Collectors.toList());
 			}
+			return Collections.emptyList();
 		}
 
 		final Matcher m1 = nameToken.matcher(lastLine);
