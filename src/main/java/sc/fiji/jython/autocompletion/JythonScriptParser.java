@@ -193,7 +193,7 @@ public class JythonScriptParser {
 						varName = attr.getInternalAttrName().getInternalId(); // in the first iteration becomes the name of the first Attribute
 						// Add the name of the Attribute to the list of expansions for the prior varName
 						scopeC = cda.scope; // prepare scope for next iteration
-						scopeC.vars.put(varName, cda); // Is this needed? I think it isn't
+						//scopeC.vars.put(varName, cda); // Is this needed? I think it isn't
 						cda.put(varName); // add varName (e.g. "width") as a possible expansion for the prior varName (e.g. "self").
 					} else {
 						// Don't know how to handle e.g. self.doThis().that = 10 because for "doThis()" there would be a class return type stored 
@@ -228,8 +228,8 @@ public class JythonScriptParser {
 		final Scope fn_scope = new Scope(parent, null);
 		// Add arguments to the scope -- must be done BEFORE parseNode
 		for (final String arg: argumentNames) {
-			// Empty, for the first argument ("self" or similar) will be replaced later if it's part of a class definition.
-			fn_scope.vars.put(arg, new ClassDotAutocompletions("<unknown>", Collections.emptyList(), Collections.emptyList(), new ArrayList<String>(), parent));
+			// Empty. For the first argument ("self" or similar) will be replaced later if it's part of a class definition.
+			fn_scope.vars.put(arg, new ClassDotAutocompletions("<unknown>", Collections.emptyList(), Collections.emptyList(), new ArrayList<String>(), fn_scope));
 		}
 		parseNode(fn_scope, fn.getChildren(), null);
 		// Get the return type, if any
@@ -275,7 +275,7 @@ public class JythonScriptParser {
 			final FunctionDef fn = (FunctionDef)child;
 			final List<PythonTree> args = fn.getInternalArgs().getChildren();
 			if (args.size() > 0) {
-				// Populate argument list by reading them from the __init__ method
+				// Populate class constructor argument list by reading them from the __init__ method
 				if ("__init__".equals(fn.getInternalName())) {
 					// Add all arguments except the first one, which is the internal reference conventionally named "self"
 					argumentNames.addAll(args.subList(1, args.size()).stream()
@@ -283,12 +283,11 @@ public class JythonScriptParser {
 				}
 				// Add completions to the first argument (generally "self")
 				// TODO check annotations, shouldn't add them if the function is static
-				System.out.println(args.get(0).getNode().toString());
 				final DefVarDotAutocompletions fnda = (DefVarDotAutocompletions)class_scope.vars.get(fn.getInternalName());
-				final DotAutocompletions argda = fnda.scope.find(fnda.argumentNames.get(0), DotAutocompletions.EMPTY);
+				final DotAutocompletions argda = fnda.scope.vars.get(args.get(0).getNode().toString());
 				if (argda instanceof ClassDotAutocompletions) {
 					// Replace the autocompletions for the first argument with cda plus whichever autocompletions it accumulated within the function definition.
-					fnda.scope.vars.put(fnda.argumentNames.get(0), cda.plus(argda.get()));
+					((ClassDotAutocompletions)argda).mutateIntoPlus(cda);
 				}
 				//.scope.vars.put(args.get(0).getNode().toString(), cda);
 			}
@@ -313,7 +312,7 @@ public class JythonScriptParser {
 		if (right instanceof Num) {
 			// e.g. return 10
 			// e.g. n = 42
-			return new VarDotAutocompletions(((Num)right).getInternalN().getClass().getName());
+			return new VarDotAutocompletions(((Num)right).getInternalN().getClass().toString());
 		}
 		if (right instanceof Attribute) {
 			// e.g. a field or a method

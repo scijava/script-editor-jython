@@ -34,12 +34,17 @@ public class ClassDotAutocompletions extends DefVarDotAutocompletions {
 		this.dotAutocompletions.add(name);
 	}
 	
-	/** Return a duplicate with everything the same (same object ref) except for the dotAutocompletions list which is a copy
-	 *  into which the provided vars are added. */
-	public ClassDotAutocompletions plus(final List<String> vars) {
-		final List<String> da = new ArrayList<String>(vars);
-		da.addAll(this.dotAutocompletions);
-		return new ClassDotAutocompletions(this.fnName, this.superclassNames, this.argumentNames, da, this.scope);
+	/** Make this be cda plus its own dotAutocompletions. */
+	public void mutateIntoPlus(final ClassDotAutocompletions cda) 
+	{
+		this.className = cda.className;
+		this.fnName = cda.fnName;
+		this.superclassNames.clear();
+		this.superclassNames.addAll(cda.superclassNames);
+		this.dotAutocompletions.addAll(cda.dotAutocompletions);
+		this.argumentNames.clear();
+		this.argumentNames.addAll(cda.argumentNames);
+		this.scope = cda.scope;
 	}
 	
 	@Override

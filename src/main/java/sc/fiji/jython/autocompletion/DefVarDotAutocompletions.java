@@ -4,9 +4,9 @@ import java.util.List;
 
 public class DefVarDotAutocompletions extends VarDotAutocompletions {
 
-	final String fnName;
+	String fnName;
 	final List<String> argumentNames;
-	final Scope scope;
+	Scope scope;
 	
 	public DefVarDotAutocompletions(final String fnName, final String returnClassName, final List<String> argumentNames, final Scope scope) {
 		super(returnClassName);

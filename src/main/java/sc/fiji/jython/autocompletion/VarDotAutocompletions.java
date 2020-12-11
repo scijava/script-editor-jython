@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VarDotAutocompletions implements DotAutocompletions {
-	final String className;
+	String className;
 	public VarDotAutocompletions(final String className) {
 		this.className = className;
 	}
