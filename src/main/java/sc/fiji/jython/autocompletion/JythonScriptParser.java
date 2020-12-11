@@ -151,16 +151,21 @@ public class JythonScriptParser {
 		final Map<String, DotAutocompletions> assigns = new HashMap<>();
 		//final expr right = assign.getInternalValue(); // strangely this works
 		final PythonTree right = assign.getChildren().get(1);
-		if (right instanceof Tuple || right instanceof org.python.antlr.ast.List) { // TODO are there any other possible?
-			final PythonTree left = assign.getChildren().get(0);
+		final PythonTree left = assign.getChildren().get(0);
+		if (null != left.getChildren() && left.getChildren().size() > 1
+				&& (right instanceof Tuple || right instanceof org.python.antlr.ast.List)) { // TODO are there any other possible?
 			for (int i=0; i<right.getChildren().size(); ++i) {
-				final String name = left.getChildren().get(i).getNode().toString();
+				final CommonTree ct = left.getChildren().get(i).getNode();
+				if (null == ct) {
+					System.out.println("null for left: '" + left + "'" + " at child node " + i);
+					continue;
+				}
+				final String name = ct.toString();
 				final DotAutocompletions val = parseRight(right.getChildren().get(i), scope);
 				if (null != val) assigns.put(name, val);
 			}
 		} else {
 			// Left is a Name: simple assignment e.g. "one = 1"
-			PyObject left = assign.getChildren().get(0);
 			if ( left instanceof Name ) {
 				assigns.put(((Name)left).getInternalId(), parseRight(right, scope));
 				return assigns;
@@ -170,14 +175,15 @@ public class JythonScriptParser {
 			// Will have to be recursive, as it could be multiple dereferences, e.g. self.volume.name = "that"
 			// Has to: find out what the base is (e.g. 'self') and add, as an expansion of it, the attribute (e.g. "width")
 			// with the assigned class (e.g. "PyInteger" for "10"), and add names, if not there yet, to the appropriate lists for autocompletion.
+			PyObject leftn = left;
 			final ArrayList<Attribute> attrs = new ArrayList<>();
-			while (left instanceof Attribute) {
-				final Attribute attr = (Attribute)left;
+			while (leftn instanceof Attribute) {
+				final Attribute attr = (Attribute)leftn;
 				attrs.add(attr);
-				left = attr.getValue();
+				leftn = attr.getValue();
 			}
-			if (left instanceof Name) {
-				String varName = ((Name)left).getInternalId();
+			if (leftn instanceof Name) {
+				String varName = ((Name)leftn).getInternalId();
 				Collections.reverse(attrs);
 				Scope scopeC = scope;
 				for (final Attribute attr: attrs) {
