@@ -207,23 +207,6 @@ public class JythonScriptParser {
 		return assigns;
 	}
 	
-	static public DotAutocompletions parseLeft(final PyObject left, final DotAutocompletions value, final Scope scope) {
-		if (left instanceof Name) {
-			final DotAutocompletions ac = scope.find(((Name)left).getInternalId(), DotAutocompletions.EMPTY);
-			if (ac instanceof ClassDotAutocompletions) return ac;
-		}
-		
-		if (left instanceof Attribute) {
-			final Attribute attr = (Attribute)left;
-			final DotAutocompletions ac = parseLeft(attr.getValue(), value, scope);
-			if (ac instanceof ClassDotAutocompletions) {
-				((ClassDotAutocompletions)ac).put(attr.getInternalAttrName().toString());
-			}
-		}
-		
-		return DotAutocompletions.EMPTY;
-	}
-	
 	/**
 	 * Adds a child Scope to the given parent Scope, and also a variable to the parent scope
 	 * with no class, just for the function name. Then populates the child scope.
