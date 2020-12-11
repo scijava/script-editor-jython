@@ -15,6 +15,7 @@ import org.python.antlr.ast.Call;
 import org.python.antlr.ast.ClassDef;
 import org.python.antlr.ast.Expr;
 import org.python.antlr.ast.FunctionDef;
+import org.python.antlr.ast.If;
 import org.python.antlr.ast.Import;
 import org.python.antlr.ast.ImportFrom;
 import org.python.antlr.ast.Name;
@@ -87,6 +88,8 @@ public class JythonScriptParser {
 				parseClassDef((ClassDef)child, scope);
 			else if (child instanceof Expr)
 				parseExpr((Expr)child, scope);
+			else if (child instanceof If) // no new scope for if statements in python
+				parseNode(scope, ((If)child).getChildren(), null); // first one is a Compare, which we ignore, then e.g. Assign, etc.
 			else
 				print("UNKNOWN child: " + child + " -- " + child.getText());
 		}
@@ -157,8 +160,6 @@ public class JythonScriptParser {
 			// Will have to be recursive, as it could be multiple dereferences, e.g. self.volume.name = "that"
 			// Has to: find out what the base is (e.g. 'self') and add, as an expansion of it, the attribute (e.g. "width")
 			// with the assigned class (e.g. "PyInteger" for "10"), and add names, if not there yet, to the appropriate lists for autocompletion.
-			System.out.println("left 0: " + left);
-			int i = 0;
 			final ArrayList<Attribute> attrs = new ArrayList<>();
 			while (left instanceof Attribute) {
 				final Attribute attr = (Attribute)left;
