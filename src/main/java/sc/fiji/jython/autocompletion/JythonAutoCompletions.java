@@ -93,13 +93,15 @@ public class JythonAutoCompletions implements AutoCompletionListener
 		// Preconditions 2: codeWithoutLastLine has to be valid
 		// Analyze last line of codeWithoutLastLine: if it ends with a ':', must add a "pass" to make it a valid code block
 		// so that the ParserFacade can work
+		boolean add_pass = false;
 		if (codeWithoutLastLine.endsWith("\n")) {
 			JythonScriptParser.print("codeWithoutLastLine ends with line break");
 			final int priorLineBreak = codeWithoutLastLine.lastIndexOf('\n', codeWithoutLastLine.length() - 2);
 			final String endingLine = codeWithoutLastLine.substring(priorLineBreak + 1);
 			final Matcher me = endingCode.matcher(endingLine);
 			if (me.find()) {
-				codeWithoutLastLine = codeWithoutLastLine.substring(0, priorLineBreak + 1) + me.group(1) + me.group(2) + ": pass";
+				codeWithoutLastLine = codeWithoutLastLine.substring(0, priorLineBreak + 1) + me.group(1) + me.group(2);
+				add_pass = true;
 				JythonScriptParser.print("changed code to: \n" + codeWithoutLastLine + "\n###");
 			}
 		}
@@ -218,8 +220,15 @@ public class JythonAutoCompletions implements AutoCompletionListener
 				int start = 0;
 				while (Character.isWhitespace(lastLine.charAt(start++)));
 				--start;
+				String suffix = "";
+				if (add_pass) {
+					add_pass = false; // don't
+					JythonScriptParser.print("Removed ' pass'");
+					suffix = ":\n  ";
+				}
 				varName = "____GRAB____"; // an injected var to capture the returned class
-				code = codeWithoutLastLine + lastLine.substring(0, start) + varName + " = " + lastLine.substring(start, lastLine.length() - 1 - seed.length());
+				code = codeWithoutLastLine + (add_pass ? ": pass" : "") + suffix + lastLine.substring(0, start) + varName + " = " + lastLine.substring(start, lastLine.length() - 1 - seed.length());
+				JythonScriptParser.print("codeWithoutLastLine:\n" + codeWithoutLastLine);
 			}
 			final DotAutocompletions da = JythonScriptParser.parseAST(code).getLast().find(varName, DotAutocompletions.EMPTY);
 			return da.get().stream()
