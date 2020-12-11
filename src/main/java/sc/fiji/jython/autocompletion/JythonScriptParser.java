@@ -21,6 +21,7 @@ import org.python.antlr.ast.Name;
 import org.python.antlr.ast.Num;
 import org.python.antlr.ast.Return;
 import org.python.antlr.ast.Tuple;
+import org.python.antlr.ast.Yield;
 import org.python.antlr.ast.alias;
 import org.python.antlr.ast.arguments;
 import org.python.antlr.base.expr;
@@ -346,6 +347,10 @@ public class JythonScriptParser {
 			// imp = IJ.getImage().getProcessor()
 			final Call call = (Call)right;
 			return parseRight(call.getFunc(), scope); // getFunc() returns an Attribute or a Name
+		}
+		if (right instanceof Yield) {
+			final Yield yield = (Yield)right;
+			return parseRight(yield.getValue(), scope);
 		}
 		
 		return DotAutocompletions.EMPTY;
