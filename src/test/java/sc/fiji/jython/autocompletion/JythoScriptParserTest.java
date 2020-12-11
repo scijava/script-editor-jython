@@ -53,9 +53,38 @@ public class JythoScriptParserTest {
 			""
 			);
 	
+	static final String testCode4 = String.join("\n",
+			"ls = [1, 2, 3]",
+			"def yielfFn(seq):",
+			"  for elem in seq:",
+			"    yield elem",
+			"total = 0",
+			"for o in yieldFn(ls):",
+			"  total += o",
+			"print total",
+			""
+			);
+	
+	static final String testCode5 = String.join("\n",
+			"from __future__ import with_statement",
+			"import sys",
+			"lines = []",
+			"with open('/tmp/file.txt') as f:",
+			"  for line in f:",
+			"    try:",
+			"      line = line[:-1]",
+			"      print line",
+			"      lines.append(line)",
+			"    except:",
+			"      print sys.exc_info()",
+			"    finally:",
+			"      pass",
+			""
+			);
+	
 	static public final void main(String[] args) {
 		try {
-			final String code = testCode3;
+			final String code = testCode4;
 			JythonScriptParser.DEBUG = true;
 			final int lastLineBreak = code.lastIndexOf("\n");
 			final String codeToParse = -1 == lastLineBreak ? code : code.substring(0, lastLineBreak);

@@ -8,12 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.antlr.runtime.tree.CommonTree;
 import org.python.antlr.PythonTree;
 import org.python.antlr.ast.Assign;
 import org.python.antlr.ast.Attribute;
 import org.python.antlr.ast.Call;
 import org.python.antlr.ast.ClassDef;
 import org.python.antlr.ast.Expr;
+import org.python.antlr.ast.For;
 import org.python.antlr.ast.FunctionDef;
 import org.python.antlr.ast.If;
 import org.python.antlr.ast.Import;
@@ -21,7 +23,11 @@ import org.python.antlr.ast.ImportFrom;
 import org.python.antlr.ast.Name;
 import org.python.antlr.ast.Num;
 import org.python.antlr.ast.Return;
+import org.python.antlr.ast.TryExcept;
+import org.python.antlr.ast.TryFinally;
 import org.python.antlr.ast.Tuple;
+import org.python.antlr.ast.While;
+import org.python.antlr.ast.With;
 import org.python.antlr.ast.Yield;
 import org.python.antlr.ast.alias;
 import org.python.antlr.ast.arguments;
@@ -88,10 +94,14 @@ public class JythonScriptParser {
 				parseClassDef((ClassDef)child, scope);
 			else if (child instanceof Expr)
 				parseExpr((Expr)child, scope);
-			else if (child instanceof If) // no new scope for if statements in python
-				parseNode(scope, ((If)child).getChildren(), null); // first one is a Compare, which we ignore, then e.g. Assign, etc.
+			else if (child instanceof If || child instanceof For || child instanceof While
+					|| child instanceof TryExcept || child instanceof TryFinally || child instanceof With)
+				// no new scope in if/for/while/with/try/ statements in python
+				parseNode(scope, child.getChildren(), null);
 			else
-				print("UNKNOWN child: " + child + " -- " + child.getText());
+				print("IGNORING child: " + child + " -- " + (null != child.getChildren() ?
+						String.join("::", child.getChildren().stream().map(c -> c.toString()).collect(Collectors.toList()))
+						: ""));
 		}
 	}
 	
