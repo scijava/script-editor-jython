@@ -158,7 +158,6 @@ public class JythonAutoCompletions implements AutoCompletionListener
 		
 		final Matcher mm = importMember.matcher(lastLine);
 		if (mm.find()) {
-			System.out.println("importMember");
 			// Complete member name
 			final String pkgName = mm.group(1),
 					     member = mm.group(2) == null ? "" : mm.group(2);

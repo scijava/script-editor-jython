@@ -32,12 +32,21 @@ public class JythoScriptParserTest {
 			"  ip = an_imp.getStack().getProcessor(3)", // unknowable: derives from an untyped argument
 			"  pixels = ip.");
 	
+	static final String testCode2 = String.join("\n",
+			"class Vol():",
+			"  def do1(self):",
+			"    self.a = 10",
+			"    return self.a",
+			"  def do2(self, num):",
+			"    self.b = num",
+			"    return self.c + self.b"
+			);
 	
 	static public final void main(String[] args) {
 		try {
 			JythonScriptParser.DEBUG = true;
-			final int lastLineBreak = testCode.lastIndexOf("\n");
-			final String codeToParse = -1 == lastLineBreak ? testCode : testCode.substring(0, lastLineBreak);
+			final int lastLineBreak = testCode2.lastIndexOf("\n");
+			final String codeToParse = -1 == lastLineBreak ? testCode2 : testCode2.substring(0, lastLineBreak);
 			JythonScriptParser.parseAST(codeToParse).print("");
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -20,7 +20,7 @@ import org.python.indexer.types.NModuleType;
 
 public class Scope {
 	final Scope parent;
-	final boolean is_class;
+	final String className; // if any
 	final private List<Scope> children = new ArrayList<>();
 	final HashMap<String, DotAutocompletions> imports = new HashMap<>();
 	final HashMap<String, DotAutocompletions> vars = new HashMap<>();
@@ -110,15 +110,15 @@ public class Scope {
 	}
 	
 	public Scope(final Scope parent) {
-		this(parent, false);
+		this(parent, null);
 	}
 	
-	public Scope(final Scope parent, final boolean is_class) {
+	public Scope(final Scope parent, final String className) {
 		this.parent = parent;
 		if (null != parent) {
 			parent.children.add(this);
 		}
-		this.is_class = is_class;
+		this.className = className;
 	}
 	
 	public boolean isEmpty() {
@@ -142,7 +142,7 @@ public class Scope {
 				.map(s -> s.substring(builtin_className.length()))
 				.collect(Collectors.toList());
 		if (!dotAutocompletions.isEmpty())
-			return new ClassDotAutocompletions(name, Collections.emptyList(), Collections.emptyList(), dotAutocompletions);
+			return new ClassDotAutocompletions(name, Collections.emptyList(), Collections.emptyList(), dotAutocompletions, this);
 		
 		return default_value;
 	}
@@ -189,7 +189,7 @@ public class Scope {
 	}
 	
 	public boolean isClass() {
-		return this.is_class;
+		return this.className != null;
 	}
 	
 	public Scope getLast() {

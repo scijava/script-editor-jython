@@ -13,6 +13,7 @@ import org.python.antlr.ast.Assign;
 import org.python.antlr.ast.Attribute;
 import org.python.antlr.ast.Call;
 import org.python.antlr.ast.ClassDef;
+import org.python.antlr.ast.Expr;
 import org.python.antlr.ast.FunctionDef;
 import org.python.antlr.ast.Import;
 import org.python.antlr.ast.ImportFrom;
@@ -45,7 +46,7 @@ public class JythonScriptParser {
 		// Therefore, remove the last line, which would fail to parse because it is incomplete
 		try {
 			final mod m = ParserFacade.parse(code, CompileMode.exec, "<none>", new CompilerFlags());
-			return parseNode(m.getChildren(), null, false);
+			return parseNode(m.getChildren(), null, null);
 		} catch (Throwable t) {
 			t.printStackTrace();
 			return new Scope(null);
@@ -58,12 +59,14 @@ public class JythonScriptParser {
 	 * 
 	 * @param children The list of statements.
 	 * @param parent The {@code Scope} that contains these statements.
-	 * @param is_class Whether the containing {@code Scope} is a python class definition.
+	 * @param className Indicates whether the containing {@code Scope} is a python class definition, otherwise null.
 	 * @return A new {@code Scope} containing {@code DotAutocompletions} to represent each statement.
 	 */
-	static public Scope parseNode(final List<PythonTree> children, final Scope parent, final boolean is_class) {
+	static public Scope parseNode(final List<PythonTree> children, final Scope parent, final String className) {
 		
-		final Scope scope = new Scope(parent, is_class);
+		if (null == children) return parent;
+		
+		final Scope scope = new Scope(parent, className);
 		
 		for (final PythonTree child : children) {
 			print(child.getClass());
@@ -78,6 +81,8 @@ public class JythonScriptParser {
 				parseFunctionDef((FunctionDef)child, scope);
 			else if (child instanceof ClassDef)
 				parseClassDef((ClassDef)child, scope);
+			else if (child instanceof Expr)
+				parseExpr((Expr)child, scope);
 			else
 				print("UNKNOWN child: " + child + " -- " + child.getText());
 		}
@@ -85,6 +90,11 @@ public class JythonScriptParser {
 		return scope;
 	}
 	
+	static public void parseExpr(final Expr child, final Scope scope) {
+		// child.getText() shows child is the base
+		print("Expr: " + child.getText() + ", " + child.getInternalValue() + ", " + child.getValue() + ", children: " + String.join(", ", child.getChildren().stream().map(PythonTree::toString).collect(Collectors.toList())));
+	}
+
 	/**
 	 * Parse import statements, considering aliases.
 	 * There can be more than one if e.g. commas were used, as in "from ij import IJ, ImageJ".
@@ -131,15 +141,72 @@ public class JythonScriptParser {
 			for (int i=0; i<right.getChildren().size(); ++i) {
 				final String name = left.getChildren().get(i).getNode().toString();
 				final DotAutocompletions val = parseRight(right.getChildren().get(i), scope);
-				if (null != val) assigns.put(name, val); // scope.vars.put(name, val);
+				if (null != val) assigns.put(name, val);
 			}
 		} else {
-			final String name = assign.getInternalTargets().get(0).getNode().toString();
-			final DotAutocompletions val = parseRight(right, scope);
-			assigns.put(name, val);
+			// Left is a Name: simple assignment e.g. "one = 1"
+			PyObject left = assign.getChildren().get(0);
+			if ( left instanceof Name ) {
+				assigns.put(((Name)left).getInternalId(), parseRight(right, scope));
+				return assigns;
+			}
+			// Assignment to an attribute
+			// Handle left when it's e.g. self.width = 10 which creates a new member in "self".
+			// Will have to be recursive, as it could be multiple dereferences, e.g. self.volume.name = "that"
+			// Has to: find out what the base is (e.g. 'self') and add, as an expansion of it, the attribute (e.g. "width")
+			// with the assigned class (e.g. "PyInteger" for "10"), and add names, if not there yet, to the appropriate lists for autocompletion.
+			System.out.println("left 0: " + left);
+			int i = 0;
+			final ArrayList<Attribute> attrs = new ArrayList<>();
+			while (left instanceof Attribute) {
+				final Attribute attr = (Attribute)left;
+				attrs.add(attr);
+				left = attr.getValue();
+				System.out.println("left " + (++i) + ": " + left);
+			}
+			if (left instanceof Name) {
+				String varName = ((Name)left).getInternalId();
+				System.out.println("left is a Name: " + varName);
+				Collections.reverse(attrs);
+				Scope scopeC = scope;
+				for (final Attribute attr: attrs) {
+					final DotAutocompletions ac = scopeC.find(varName, DotAutocompletions.EMPTY); // in the first iteration it finds the completions for the base Name
+					System.out.println("ac is empty: " + (ac == DotAutocompletions.EMPTY) + " for varName: " + varName);
+					/// TODO it's empty because this parsing is happening BEFORE the "self" is added
+					if (ac instanceof ClassDotAutocompletions) {
+						final ClassDotAutocompletions cda = (ClassDotAutocompletions)ac;
+						varName = attr.getInternalAttrName().toString(); // in the first iteration becomes the name of the first Attribute
+						// Add the name of the Attribute to the list of expansions for the prior varName
+						scopeC = cda.scope; // prepare scope for next iteration
+						scopeC.vars.put(varName, cda); // Is this needed? I think it isn't
+						cda.put(varName); // add varName (e.g. "width") as a possible expansion for the prior varName (e.g. "self").
+					} else {
+						// Don't know how to handle e.g. self.doThis().that = 10 because for "doThis()" there would be a class return type stored 
+						break;
+					}
+				}
+				return assigns;
+			}
 		}
  
 		return assigns;
+	}
+	
+	static public DotAutocompletions parseLeft(final PyObject left, final DotAutocompletions value, final Scope scope) {
+		if (left instanceof Name) {
+			final DotAutocompletions ac = scope.find(((Name)left).getInternalId(), DotAutocompletions.EMPTY);
+			if (ac instanceof ClassDotAutocompletions) return ac;
+		}
+		
+		if (left instanceof Attribute) {
+			final Attribute attr = (Attribute)left;
+			final DotAutocompletions ac = parseLeft(attr.getValue(), value, scope);
+			if (ac instanceof ClassDotAutocompletions) {
+				((ClassDotAutocompletions)ac).put(attr.getInternalAttrName().toString());
+			}
+		}
+		
+		return DotAutocompletions.EMPTY;
 	}
 	
 	/**
@@ -158,11 +225,17 @@ public class JythonScriptParser {
 				args.getChildren().stream().map(arg -> arg.getNode().toString()).collect(Collectors.toList())
 				: Collections.emptyList();
 		// Parse the function body
-		final Scope fn_scope = parseNode(fn.getChildren(), parent, false);
+		final Scope fn_scope = parseNode(fn.getChildren(), parent, null);
+		// Add arguments to the scope
+		final int first = parent.isClass() ? 1 : 0; // leave "self" alone: was populated with completions for class methods in parseClassDef
+		System.out.println("parent is class: " + parent.className + " for fn " + name + " first: " + first);
+		for (int i=first; i<argumentNames.size(); ++i) {
+			fn_scope.vars.put(argumentNames.get(i), DotAutocompletions.EMPTY); // classes of arguments are unknown
+		}
 		// Get the return type, if any
 		final PythonTree last = fn.getChildren().get(fn.getChildCount() -1);
 		final String returnClassName = last instanceof Return ? parseRight(last.getChildren().get(0), fn_scope).toString() : null;
-		parent.vars.put(name, new DefVarDotAutocompletions(name, returnClassName, argumentNames));
+		parent.vars.put(name, new DefVarDotAutocompletions(name, returnClassName, argumentNames, fn_scope));
 	}
 	
 	/**
@@ -175,13 +248,14 @@ public class JythonScriptParser {
 	 */
 	static public void parseClassDef(final ClassDef c, final Scope parent) {
 		final String pyClassname = c.getInternalName();
-		final Scope class_scope = parseNode(c.getChildren(), parent, true);
+		final Scope class_scope = parseNode(c.getChildren(), parent, pyClassname);
 		// Methods of the class
 		final List<String> classDotAutocompletions = new ArrayList<>();
 		// Iterate vars of the scope, which are those of the class only
 		for (final DotAutocompletions da: class_scope.vars.values()) {
 			if (da instanceof DefVarDotAutocompletions) {
-				classDotAutocompletions.add(((DefVarDotAutocompletions)da).fnName);
+				final DefVarDotAutocompletions dda = (DefVarDotAutocompletions)da;
+				classDotAutocompletions.add(dda.fnName);
 			}
 		}
 		// Superclasses
@@ -193,24 +267,29 @@ public class JythonScriptParser {
 			else
 				superclassNames.add(da.getClassname());
 		}
-		// Search for the constructor __init__ if any
+		// Search for the constructor __init__ if any to get the constructor parameters
 		final List<String> argumentNames = new ArrayList<>();
+		final ClassDotAutocompletions cda = new ClassDotAutocompletions(pyClassname, superclassNames, argumentNames, classDotAutocompletions, class_scope);
 		for (final PythonTree child: c.getChildren()) {
 			if (!(child instanceof FunctionDef)) continue;
 			final FunctionDef fn = (FunctionDef)child;
-			if ("__init__".equals(fn.getInternalName())) {
-				final List<PythonTree> args = fn.getInternalArgs().getChildren();
-				if (args.size() > 0) {
+			final List<PythonTree> args = fn.getInternalArgs().getChildren();
+			if (args.size() > 0) {
+				// Populate argument list by reading them from the __init__ method
+				if ("__init__".equals(fn.getInternalName())) {
 					// Add all arguments except the first one, which is the internal reference conventionally named "self"
 					argumentNames.addAll(args.subList(1, args.size()).stream()
 						.map(arg -> arg.getNode().toString()).collect(Collectors.toList()));
-					// Use the first argument
-					class_scope.vars.put(args.get(0).getNode().toString(), new ClassDotAutocompletions(pyClassname, superclassNames, argumentNames, classDotAutocompletions));
 				}
-				break;
+				// Add completions to the first argument (generally "self")
+				// TODO check annotations, shouldn't add them if the function is static
+				System.out.println(args.get(0).getNode().toString());
+				((DefVarDotAutocompletions)class_scope.vars.get(fn.getInternalName())).scope.vars.put(args.get(0).getNode().toString(), cda);
 			}
 		}
-		parent.vars.put(pyClassname, new ClassDotAutocompletions(pyClassname, superclassNames, argumentNames, classDotAutocompletions));
+		
+		// Add to the parent scope for expansion of the constructor name plus parameters 
+		parent.vars.put(pyClassname, cda);
 	}
 	
 	/** Discover the class returned by the right statement in an assignment.

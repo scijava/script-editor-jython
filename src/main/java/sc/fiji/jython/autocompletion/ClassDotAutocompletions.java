@@ -7,12 +7,14 @@ public class ClassDotAutocompletions extends DefVarDotAutocompletions {
 	final List<String> superclassNames,       // List of superclasses
 	                   dotAutocompletions; // List of class methods and fields
 	
-	public ClassDotAutocompletions(final String fnName, List<String> superclassNames, final List<String> argumentNames, final List<String> dotAutocompletions) {
-		super(fnName, null, argumentNames);
+	public ClassDotAutocompletions(final String fnName, List<String> superclassNames,
+			final List<String> argumentNames, final List<String> dotAutocompletions, final Scope class_scope) {
+		super(fnName, null, argumentNames, class_scope);
 		this.superclassNames = superclassNames;
 		this.dotAutocompletions = dotAutocompletions;
 	}
 	
+	@Override
 	public List<String> get() {
 		final List<String> ac = new ArrayList<>(this.dotAutocompletions);
 		for (final String className: this.superclassNames) {
@@ -25,6 +27,11 @@ public class ClassDotAutocompletions extends DefVarDotAutocompletions {
 			ac.addAll(fm);
 		}
 		return ac;
+	}
+	
+	public void put(final String name) {
+		if (this.dotAutocompletions.contains(name)) return; // list search OK: very low N
+		this.dotAutocompletions.add(name);
 	}
 	
 	@Override
