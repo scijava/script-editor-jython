@@ -52,7 +52,7 @@ public class JythonScriptParser {
 			return new Scope(null);
 		}
 	}
-	
+
 	/**
 	 * Parse a {@code List} of {@code PythonTree} instances, each representing a python statement
 	 * including {@code ImportFrom, Assign, FunctionDef, ClassDef}.
@@ -63,10 +63,13 @@ public class JythonScriptParser {
 	 * @return A new {@code Scope} containing {@code DotAutocompletions} to represent each statement.
 	 */
 	static public Scope parseNode(final List<PythonTree> children, final Scope parent, final String className) {
-		
 		if (null == children) return parent;
-		
 		final Scope scope = new Scope(parent, className);
+		parseNode(scope, children, className);
+		return scope;
+	}
+
+	static public void parseNode(final Scope scope, final List<PythonTree> children, final String className) {
 		
 		for (final PythonTree child : children) {
 			print(child.getClass());
@@ -86,8 +89,6 @@ public class JythonScriptParser {
 			else
 				print("UNKNOWN child: " + child + " -- " + child.getText());
 		}
-		
-		return scope;
 	}
 	
 	static public void parseExpr(final Expr child, final Scope scope) {
@@ -162,20 +163,16 @@ public class JythonScriptParser {
 				final Attribute attr = (Attribute)left;
 				attrs.add(attr);
 				left = attr.getValue();
-				System.out.println("left " + (++i) + ": " + left);
 			}
 			if (left instanceof Name) {
 				String varName = ((Name)left).getInternalId();
-				System.out.println("left is a Name: " + varName);
 				Collections.reverse(attrs);
 				Scope scopeC = scope;
 				for (final Attribute attr: attrs) {
 					final DotAutocompletions ac = scopeC.find(varName, DotAutocompletions.EMPTY); // in the first iteration it finds the completions for the base Name
-					System.out.println("ac is empty: " + (ac == DotAutocompletions.EMPTY) + " for varName: " + varName);
-					/// TODO it's empty because this parsing is happening BEFORE the "self" is added
 					if (ac instanceof ClassDotAutocompletions) {
 						final ClassDotAutocompletions cda = (ClassDotAutocompletions)ac;
-						varName = attr.getInternalAttrName().toString(); // in the first iteration becomes the name of the first Attribute
+						varName = attr.getInternalAttrName().getInternalId(); // in the first iteration becomes the name of the first Attribute
 						// Add the name of the Attribute to the list of expansions for the prior varName
 						scopeC = cda.scope; // prepare scope for next iteration
 						scopeC.vars.put(varName, cda); // Is this needed? I think it isn't
@@ -225,13 +222,15 @@ public class JythonScriptParser {
 				args.getChildren().stream().map(arg -> arg.getNode().toString()).collect(Collectors.toList())
 				: Collections.emptyList();
 		// Parse the function body
-		final Scope fn_scope = parseNode(fn.getChildren(), parent, null);
-		// Add arguments to the scope
-		final int first = parent.isClass() ? 1 : 0; // leave "self" alone: was populated with completions for class methods in parseClassDef
-		System.out.println("parent is class: " + parent.className + " for fn " + name + " first: " + first);
-		for (int i=first; i<argumentNames.size(); ++i) {
-			fn_scope.vars.put(argumentNames.get(i), DotAutocompletions.EMPTY); // classes of arguments are unknown
+		final List<PythonTree> children = fn.getChildren();
+		if (null == children) return;
+		final Scope fn_scope = new Scope(parent, null);
+		// Add arguments to the scope -- must be done BEFORE parseNode
+		for (final String arg: argumentNames) {
+			// Empty, for the first argument ("self" or similar) will be replaced later if it's part of a class definition.
+			fn_scope.vars.put(arg, new ClassDotAutocompletions("<unknown>", Collections.emptyList(), Collections.emptyList(), new ArrayList<String>(), parent));
 		}
+		parseNode(fn_scope, fn.getChildren(), null);
 		// Get the return type, if any
 		final PythonTree last = fn.getChildren().get(fn.getChildCount() -1);
 		final String returnClassName = last instanceof Return ? parseRight(last.getChildren().get(0), fn_scope).toString() : null;
@@ -284,7 +283,13 @@ public class JythonScriptParser {
 				// Add completions to the first argument (generally "self")
 				// TODO check annotations, shouldn't add them if the function is static
 				System.out.println(args.get(0).getNode().toString());
-				((DefVarDotAutocompletions)class_scope.vars.get(fn.getInternalName())).scope.vars.put(args.get(0).getNode().toString(), cda);
+				final DefVarDotAutocompletions fnda = (DefVarDotAutocompletions)class_scope.vars.get(fn.getInternalName());
+				final DotAutocompletions argda = fnda.scope.find(fnda.argumentNames.get(0), DotAutocompletions.EMPTY);
+				if (argda instanceof ClassDotAutocompletions) {
+					// Replace the autocompletions for the first argument with cda plus whichever autocompletions it accumulated within the function definition.
+					fnda.scope.vars.put(fnda.argumentNames.get(0), cda.plus(argda.get()));
+				}
+				//.scope.vars.put(args.get(0).getNode().toString(), cda);
 			}
 		}
 		
