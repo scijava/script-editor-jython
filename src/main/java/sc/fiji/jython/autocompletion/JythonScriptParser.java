@@ -36,6 +36,7 @@ import org.python.antlr.base.mod;
 import org.python.core.CompileMode;
 import org.python.core.CompilerFlags;
 import org.python.core.ParserFacade;
+import org.python.core.PyInteger;
 import org.python.core.PyObject;
 import org.python.indexer.types.NModuleType;
 
@@ -312,7 +313,8 @@ public class JythonScriptParser {
 		if (right instanceof Num) {
 			// e.g. return 10
 			// e.g. n = 42
-			return new VarDotAutocompletions(((Num)right).getInternalN().getClass().toString());
+			final Class<?> c = ((Num)right).getInternalN().getClass() == PyInteger.class ? Long.TYPE : Double.TYPE;
+			return new VarDotAutocompletions(c.toString());
 		}
 		if (right instanceof Attribute) {
 			// e.g. a field or a method
