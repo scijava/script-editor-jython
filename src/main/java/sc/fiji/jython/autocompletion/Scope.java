@@ -81,6 +81,7 @@ public class Scope {
 			NModuleType mod = null;
 			try {
 				mod = indexer.loadModule(qname);
+				if (null == mod) return null;
 			} catch (Exception e) {
 				System.out.println("Could not load python module named " + qname);
 				e.printStackTrace();
