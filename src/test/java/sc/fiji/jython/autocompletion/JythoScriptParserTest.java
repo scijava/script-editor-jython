@@ -45,7 +45,7 @@ public class JythoScriptParserTest {
 	
 	static final String testCode3 = String.join("\n",
 			"a = 10",
-			"b = 20",
+			"b = 20.0",
 			"if a < b:",
 			"  c = 0",
 			"else:",
@@ -84,7 +84,7 @@ public class JythoScriptParserTest {
 	
 	static public final void main(String[] args) {
 		try {
-			final String code = testCode2;
+			final String code = testCode3;
 			JythonScriptParser.DEBUG = true;
 			final int lastLineBreak = code.lastIndexOf("\n");
 			final String codeToParse = -1 == lastLineBreak ? code : code.substring(0, lastLineBreak);
