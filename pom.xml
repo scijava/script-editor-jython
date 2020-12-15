@@ -75,7 +75,7 @@
 
 	<properties>
 		<package-name>org.fiji.jython.autocompletion</package-name>
-		<license.licenseName>GPL_3</license.licenseName>
+		<license.licenseName>gpl_v3</license.licenseName>
 		<license.copyrightOwners>Albert Cardona</license.copyrightOwners>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
