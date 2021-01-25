@@ -2,7 +2,7 @@
  * #%L
  * Autocompletion for the jython language in the Script Editor
  * %%
- * Copyright (C) 2020 Albert Cardona
+ * Copyright (C) 2020 - 2021 Albert Cardona
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
