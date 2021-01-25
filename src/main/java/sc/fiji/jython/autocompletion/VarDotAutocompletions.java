@@ -26,6 +26,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.scijava.ui.swing.script.autocompletion.CompletionText;
+
 public class VarDotAutocompletions implements DotAutocompletions {
 	String className;
 	public VarDotAutocompletions(final String className) {
@@ -36,21 +38,22 @@ public class VarDotAutocompletions implements DotAutocompletions {
 		return this.className;
 	}
 	@Override
-	public List<String> get() {
-		final List<String> ac = new ArrayList<>();
+	public List<CompletionText> get() {
+		final List<CompletionText> ac = new ArrayList<>();
 		if (null != this.className) {
 			try {
 				final Class<?> c = Class.forName(this.className);
 				for (final Field f: c.getFields())
-					ac.add(f.getName());
+					ac.add(new CompletionText(className, c, f));
 				for (final Method m: c.getMethods())
-					ac.add(m.getName()); // TODO could do a parameter-driven autocompletion
+					ac.add(new CompletionText(className, c, m)); // TODO could do a parameter-driven autocompletion
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
 		return ac;
 	}
+
 	@Override
 	public String toString() {
 		return "VarDotAutocompletions: " + this.className;

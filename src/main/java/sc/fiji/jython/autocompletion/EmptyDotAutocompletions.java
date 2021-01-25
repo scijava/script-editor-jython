@@ -24,9 +24,11 @@ package sc.fiji.jython.autocompletion;
 import java.util.Collections;
 import java.util.List;
 
+import org.scijava.ui.swing.script.autocompletion.CompletionText;
+
 public class EmptyDotAutocompletions implements DotAutocompletions {
 	@Override
-	public List<String> get() {
+	public List<CompletionText> get() {
 		return Collections.emptyList();
 	}
 	

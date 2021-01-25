@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import org.python.indexer.Indexer;
 import org.python.indexer.types.NModuleType;
+import org.scijava.ui.swing.script.autocompletion.CompletionText;
 
 
 public class Scope {
@@ -159,9 +160,9 @@ public class Scope {
 		}
 		// Check python builtins
 		final String builtin_className = "__builtin__." + name + "."; // e.g. __builtin__.str.join
-		final List<String> dotAutocompletions = indexer.getBindings().keySet().stream()
+		final List<CompletionText> dotAutocompletions = indexer.getBindings().keySet().stream()
 				.filter(s -> s.startsWith(builtin_className))
-				.map(s -> s.substring(builtin_className.length()))
+				.map(s -> new CompletionText(s.substring(builtin_className.length())))
 				.collect(Collectors.toList());
 		if (!dotAutocompletions.isEmpty())
 			return new ClassDotAutocompletions(name, Collections.emptyList(), Collections.emptyList(), dotAutocompletions, this);

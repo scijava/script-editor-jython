@@ -24,22 +24,24 @@ package sc.fiji.jython.autocompletion;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.scijava.ui.swing.script.autocompletion.CompletionText;
+
 public class ClassDotAutocompletions extends DefVarDotAutocompletions {
-	final List<String> superclassNames,       // List of superclasses
-	                   dotAutocompletions; // List of class methods and fields
+	final List<String> superclassNames; // List of superclasses
+	final List<CompletionText>dotAutocompletions; // List of class methods and fields
 	
 	public ClassDotAutocompletions(final String fnName, List<String> superclassNames,
-			final List<String> argumentNames, final List<String> dotAutocompletions, final Scope class_scope) {
+			final List<String> argumentNames, final List<CompletionText> dotAutocompletions, final Scope class_scope) {
 		super(fnName, null, argumentNames, class_scope);
 		this.superclassNames = superclassNames;
 		this.dotAutocompletions = dotAutocompletions;
 	}
 	
 	@Override
-	public List<String> get() {
-		final List<String> ac = new ArrayList<>(this.dotAutocompletions);
+	public List<CompletionText> get() {
+		final List<CompletionText> ac = new ArrayList<>(this.dotAutocompletions);
 		for (final String className: this.superclassNames) {
-			List<String> fm = DotAutocompletions.getPublicFieldsAndMethods(className);
+			List<CompletionText> fm = DotAutocompletions.getPublicFieldsAndMethods(className);
 			if (fm.isEmpty()) {
 				// Maybe it's a python class
 				// get them all via the org.python.indexer.Indexer and Builtins classes, see StaticDotAutocompletions
@@ -50,9 +52,9 @@ public class ClassDotAutocompletions extends DefVarDotAutocompletions {
 		return ac;
 	}
 	
-	public void put(final String name) {
-		if (this.dotAutocompletions.contains(name)) return; // list search OK: very low N
-		this.dotAutocompletions.add(name);
+	public void put(final CompletionText entry) {
+		if (this.dotAutocompletions.contains(entry)) return; // list search OK: very low N
+		this.dotAutocompletions.add(entry);
 	}
 	
 	/** Make this be cda plus its own dotAutocompletions. */
@@ -70,6 +72,6 @@ public class ClassDotAutocompletions extends DefVarDotAutocompletions {
 	
 	@Override
 	public String toString() {
-		return "ClassDotAutocompletions: " + this.fnName + "(" + String.join(", ", this.argumentNames) + ")" + " -- " + String.join(", ", this.get());
+		return "ClassDotAutocompletions: " + this.fnName + "(" + String.join(", ", this.argumentNames) + ")" + " -- " + String.join(", ", this.get().toString());
 	}
 }

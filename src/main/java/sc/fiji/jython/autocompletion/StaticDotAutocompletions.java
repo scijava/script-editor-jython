@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.python.indexer.types.NModuleType;
+import org.scijava.ui.swing.script.autocompletion.CompletionText;
 
 public class StaticDotAutocompletions implements DotAutocompletions
 {	
@@ -42,8 +43,8 @@ public class StaticDotAutocompletions implements DotAutocompletions
 		return this.className;
 	}
 	@Override
-	public List<String> get() {
-		final List<String> ac = new ArrayList<>();
+	public List<CompletionText> get() {
+		final List<CompletionText> ac = new ArrayList<>();
 		if (null != this.className) {
 			String msg = "";
 			try {
@@ -51,7 +52,7 @@ public class StaticDotAutocompletions implements DotAutocompletions
 				final NModuleType module = Scope.loadPythonModule(this.className); // Scope.indexer.getBuiltinModule(this.className);
 				System.out.println("module is: " + module);
 				if (null != module) {
-					ac.addAll(module.getTable().keySet());
+					module.getTable().keySet().forEach( m -> ac.add(new CompletionText(m)));
 					// Not need to remove: a file system watcher will do so when the module file is updated or deleted.
 					// Scope.indexer.moduleTable.remove(this.className);
 					return ac;
@@ -93,27 +94,28 @@ public class StaticDotAutocompletions implements DotAutocompletions
 		}
 		return ac;
 	}
-	
-	private void fieldsAndStaticMethodsInto(final Class<?> c, final List<String> ac) {
+
+	private void fieldsAndStaticMethodsInto(final Class<?> c, final List<CompletionText> ac) {
 		for (final Field f: c.getDeclaredFields())
 			if (Modifier.isStatic(f.getModifiers()))
-				ac.add(f.getName());
+				ac.add(new CompletionText(f.getName(), c, f));
 		for (final Method m: c.getDeclaredMethods())
 			if (Modifier.isStatic(m.getModifiers()))
-				ac.add(m.getName() + "("); // TODO could do a parameter-driven autocompletion
+				ac.add(new CompletionText(m.getName() + "(", c, m)); // TODO could do a parameter-driven autocompletion
 	}
-	
-	private void fieldsAndMethodsInto(final Class<?> c, final List<String> ac) {
+
+	private void fieldsAndMethodsInto(final Class<?> c, final List<CompletionText> ac) {
 		for (final Field f: c.getDeclaredFields())
 			if (!Modifier.isStatic(f.getModifiers()))
-				ac.add(f.getName());
+				ac.add(new CompletionText(f.getName(), c, f));
 		for (final Method m: c.getDeclaredMethods())
 			if (!Modifier.isStatic(m.getModifiers()))
-				ac.add(m.getName() + "("); // TODO could do a parameter-driven autocompletion
+				ac.add(new CompletionText(m.getName() + "(", c, m)); // TODO could do a parameter-driven autocompletion
 	}
 	
 	@Override
 	public String toString() {
-		return "StaticDotAutocompletions: " + className + " -- " +String.join(", ", get());
+		final String completions = get().stream().map(c -> c.getReplacementText()).collect(Collectors.joining(",", "[", "]"));
+		return "StaticDotAutocompletions: " + className + " -- " + completions;
 	}
 }

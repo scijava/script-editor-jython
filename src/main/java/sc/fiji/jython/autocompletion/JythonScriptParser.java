@@ -60,6 +60,7 @@ import org.python.core.ParserFacade;
 import org.python.core.PyInteger;
 import org.python.core.PyObject;
 import org.python.indexer.types.NModuleType;
+import org.scijava.ui.swing.script.autocompletion.CompletionText;
 
 public class JythonScriptParser {
 	
@@ -216,7 +217,7 @@ public class JythonScriptParser {
 						// Add the name of the Attribute to the list of expansions for the prior varName
 						scopeC = cda.scope; // prepare scope for next iteration
 						//scopeC.vars.put(varName, cda); // Is this needed? I think it isn't
-						cda.put(varName); // add varName (e.g. "width") as a possible expansion for the prior varName (e.g. "self").
+						cda.put(new CompletionText(varName)); // add varName (e.g. "width") as a possible expansion for the prior varName (e.g. "self").
 					} else {
 						// Don't know how to handle e.g. self.doThis().that = 10 because for "doThis()" there would be a class return type stored 
 						break;
@@ -251,7 +252,8 @@ public class JythonScriptParser {
 		// Add arguments to the scope -- must be done BEFORE parseNode
 		for (final String arg: argumentNames) {
 			// Empty. For the first argument ("self" or similar) will be replaced later if it's part of a class definition.
-			fn_scope.vars.put(arg, new ClassDotAutocompletions("<unknown>", Collections.emptyList(), Collections.emptyList(), new ArrayList<String>(), fn_scope));
+			fn_scope.vars.put(arg, new ClassDotAutocompletions("<unknown>", Collections.emptyList(), Collections.emptyList(), 
+					new ArrayList<CompletionText>(), fn_scope));
 		}
 		parseNode(fn_scope, fn.getChildren(), null);
 		// Get the return type, if any
@@ -272,12 +274,12 @@ public class JythonScriptParser {
 		final String pyClassname = c.getInternalName();
 		final Scope class_scope = parseNode(c.getChildren(), parent, pyClassname);
 		// Methods of the class
-		final List<String> classDotAutocompletions = new ArrayList<>();
+		final List<CompletionText> classDotAutocompletions = new ArrayList<>();
 		// Iterate vars of the scope, which are those of the class only
 		for (final DotAutocompletions da: class_scope.vars.values()) {
 			if (da instanceof DefVarDotAutocompletions) {
 				final DefVarDotAutocompletions dda = (DefVarDotAutocompletions)da;
-				classDotAutocompletions.add(dda.fnName);
+				classDotAutocompletions.add(new CompletionText(dda.fnName));
 			}
 		}
 		// Superclasses

@@ -26,6 +26,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.scijava.ui.swing.script.autocompletion.CompletionText;
+
 public interface DotAutocompletions {
 	
 	static public final DotAutocompletions EMPTY = new EmptyDotAutocompletions();
@@ -34,21 +36,26 @@ public interface DotAutocompletions {
 		return null;
 	}
 	
-	public List<String> get();
-	
-	static public List<String> getPublicFieldsAndMethods(final String className) {
-		final List<String> ac = new ArrayList<>();
+	default public String getSummary() {
+		return null;
+	}
+
+	public List<CompletionText> get();
+
+	static public List<CompletionText> getPublicFieldsAndMethods(final String className) {
+		final List<CompletionText> ac = new ArrayList<>();
 		if (null != className) {
 			try {
 				final Class<?> c = Class.forName(className);
 				for (final Field f: c.getFields())
-					ac.add(f.getName());
+					ac.add(new CompletionText(null, c, f));
 				for (final Method m: c.getMethods())
-					ac.add(m.getName()); // TODO could do a parameter-driven autocompletion
-			} catch (Exception e) {
+					ac.add(new CompletionText(null, c, m)); // TODO could do a parameter-driven autocompletion
+			} catch (final Exception e) {
 				System.out.println("Could not load class " + className + " :: " + e.getMessage());
 			}
 		}
 		return ac;
 	}
+
 }
