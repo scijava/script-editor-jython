@@ -21,8 +21,6 @@
  */
 package sc.fiji.jython.autocompletion;
 
-import sc.fiji.jython.autocompletion.JythonScriptParser;
-
 public class JythoScriptParserTest {
 	
 	static public String testCode = String.join("\n",

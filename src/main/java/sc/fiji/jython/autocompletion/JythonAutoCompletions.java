@@ -101,7 +101,7 @@ public class JythonAutoCompletions implements AutoCompletionListener
 	
 	
 	public JythonAutoCompletions() {}
-	
+
 	@Override
 	public List<Completion> completionsFor(final CompletionProvider provider, String codeWithoutLastLine, final String lastLine, final String alreadyEnteredText) {
 		
