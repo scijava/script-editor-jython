@@ -28,7 +28,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -36,11 +38,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.fife.ui.autocomplete.AbstractCompletion;
 import org.fife.ui.autocomplete.BasicCompletion;
 import org.fife.ui.autocomplete.Completion;
 import org.fife.ui.autocomplete.CompletionProvider;
 import org.python.indexer.types.NModuleType;
 import org.scijava.ui.swing.script.autocompletion.AutoCompletionListener;
+import org.scijava.ui.swing.script.autocompletion.ClassUtil;
 import org.scijava.ui.swing.script.autocompletion.JythonAutocompletionProvider;
 
 public class JythonAutoCompletions implements AutoCompletionListener
@@ -252,12 +256,47 @@ public class JythonAutoCompletions implements AutoCompletionListener
 				JythonScriptParser.print("codeWithoutLastLine:\n" + codeWithoutLastLine);
 			}
 			final DotAutocompletions da = JythonScriptParser.parseAST(code).getLast().find(varName, DotAutocompletions.EMPTY);
-			return da.get().stream()
-					.filter(s -> s.startsWith(seed))
-					.map(s -> new BasicCompletion(provider, lastLine.substring(crop) + s.substring(seed.length()), null, da.getClassname()))
+			final String lowerCaseSeed = seed.toLowerCase();
+			List<Completion> list = da.get().stream()
+					.filter(s -> s.getReplacementText().toLowerCase().contains(lowerCaseSeed))
+					.map(s -> s.getCompletion(provider, lastLine.substring(crop) + s.getReplacementText().substring(seed.length())))
 					.collect(Collectors.toList());
+			sortCompletions(list, lowerCaseSeed);
+			return list;
 		}
-		
+
 		return Collections.emptyList();
+	}
+
+	@SuppressWarnings("unused")
+	private static String removeLastOptionalDot(final String s) {
+		System.out.println("removeLastOptionalDot input: " + s);
+		return (s != null && s.endsWith(".")) ? s.substring(0, s.length() - 1) : s;
+	}
+
+	/**
+	 * NB: Case-insensitive sorting
+	 * @param completions The list of completions
+	 * @param pre         the text just before the current caret position that could
+	 *                    be the start of something auto-completable.
+	 */
+	private void sortCompletions(final List<Completion> completions, final String pre) {
+		Collections.sort(completions, new Comparator<Completion>() {
+			int prefix1Index = Integer.MAX_VALUE;
+			int prefix2Index = Integer.MAX_VALUE;
+			@Override
+			public int compare(final Completion o1, final Completion o2) {
+				prefix1Index = Integer.MAX_VALUE;
+				prefix2Index = Integer.MAX_VALUE;
+				if (o1.getReplacementText().toLowerCase().startsWith(pre))
+					prefix1Index = 0;
+				if (o2.getReplacementText().toLowerCase().startsWith(pre))
+					prefix2Index = 0;
+				if (prefix1Index == prefix2Index)
+					return o1.compareTo(o2);
+				else
+					return prefix1Index - prefix2Index;
+			}
+		});
 	}
 }
