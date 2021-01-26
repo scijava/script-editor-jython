@@ -256,12 +256,14 @@ public class JythonAutoCompletions implements AutoCompletionListener
 				JythonScriptParser.print("codeWithoutLastLine:\n" + codeWithoutLastLine);
 			}
 			final DotAutocompletions da = JythonScriptParser.parseAST(code).getLast().find(varName, DotAutocompletions.EMPTY);
+			final String fullPre = lastLine.substring(crop);
+			final String pre = fullPre.substring(0, fullPre.lastIndexOf(seed));
 			final String lowerCaseSeed = seed.toLowerCase();
 			List<Completion> list = da.get().stream()
 					.filter(s -> s.getReplacementText().toLowerCase().contains(lowerCaseSeed))
-					.map(s -> s.getCompletion(provider, lastLine.substring(crop) + s.getReplacementText().substring(seed.length())))
+					.map(s -> s.getCompletion(provider, pre + s.getReplacementText()))
 					.collect(Collectors.toList());
-			sortCompletions(list, lowerCaseSeed);
+			sortCompletions(list, seed);
 			return list;
 		}
 
@@ -275,7 +277,6 @@ public class JythonAutoCompletions implements AutoCompletionListener
 	}
 
 	/**
-	 * NB: Case-insensitive sorting
 	 * @param completions The list of completions
 	 * @param pre         the text just before the current caret position that could
 	 *                    be the start of something auto-completable.
@@ -284,16 +285,17 @@ public class JythonAutoCompletions implements AutoCompletionListener
 		Collections.sort(completions, new Comparator<Completion>() {
 			int prefix1Index = Integer.MAX_VALUE;
 			int prefix2Index = Integer.MAX_VALUE;
+
 			@Override
 			public int compare(final Completion o1, final Completion o2) {
 				prefix1Index = Integer.MAX_VALUE;
 				prefix2Index = Integer.MAX_VALUE;
-				if (o1.getReplacementText().toLowerCase().startsWith(pre))
+				if (o1.getReplacementText().startsWith(pre))
 					prefix1Index = 0;
-				if (o2.getReplacementText().toLowerCase().startsWith(pre))
+				if (o2.getReplacementText().startsWith(pre))
 					prefix2Index = 0;
 				if (prefix1Index == prefix2Index)
-					return o1.compareTo(o2);
+					return o1.getReplacementText().compareTo(o2.getReplacementText());
 				else
 					return prefix1Index - prefix2Index;
 			}
