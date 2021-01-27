@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -38,13 +37,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.fife.ui.autocomplete.AbstractCompletion;
 import org.fife.ui.autocomplete.BasicCompletion;
 import org.fife.ui.autocomplete.Completion;
 import org.fife.ui.autocomplete.CompletionProvider;
 import org.python.indexer.types.NModuleType;
 import org.scijava.ui.swing.script.autocompletion.AutoCompletionListener;
-import org.scijava.ui.swing.script.autocompletion.ClassUtil;
 import org.scijava.ui.swing.script.autocompletion.JythonAutocompletionProvider;
 
 public class JythonAutoCompletions implements AutoCompletionListener
@@ -272,7 +269,6 @@ public class JythonAutoCompletions implements AutoCompletionListener
 
 	@SuppressWarnings("unused")
 	private static String removeLastOptionalDot(final String s) {
-		System.out.println("removeLastOptionalDot input: " + s);
 		return (s != null && s.endsWith(".")) ? s.substring(0, s.length() - 1) : s;
 	}
 
