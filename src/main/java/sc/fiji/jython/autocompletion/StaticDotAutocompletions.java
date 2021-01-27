@@ -101,7 +101,7 @@ public class StaticDotAutocompletions implements DotAutocompletions
 				ac.add(new CompletionText(f.getName(), c, f));
 		for (final Method m: c.getDeclaredMethods())
 			if (Modifier.isStatic(m.getModifiers()))
-				ac.add(new CompletionText(m.getName() + "(", c, m)); // TODO could do a parameter-driven autocompletion
+				ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
 	}
 
 	private void fieldsAndMethodsInto(final Class<?> c, final List<CompletionText> ac) {
@@ -110,7 +110,7 @@ public class StaticDotAutocompletions implements DotAutocompletions
 				ac.add(new CompletionText(f.getName(), c, f));
 		for (final Method m: c.getDeclaredMethods())
 			if (!Modifier.isStatic(m.getModifiers()))
-				ac.add(new CompletionText(m.getName() + "(", c, m)); // TODO could do a parameter-driven autocompletion
+				ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
 	}
 	
 	@Override

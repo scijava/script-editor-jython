@@ -48,9 +48,9 @@ public interface DotAutocompletions {
 			try {
 				final Class<?> c = Class.forName(className);
 				for (final Field f: c.getFields())
-					ac.add(new CompletionText(null, c, f));
+					ac.add(new CompletionText(f.getName(), c, f));
 				for (final Method m: c.getMethods())
-					ac.add(new CompletionText(null, c, m)); // TODO could do a parameter-driven autocompletion
+					ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
 			} catch (final Exception e) {
 				System.out.println("Could not load class " + className + " :: " + e.getMessage());
 			}
