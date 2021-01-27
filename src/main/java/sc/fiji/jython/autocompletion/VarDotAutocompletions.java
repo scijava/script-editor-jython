@@ -44,9 +44,9 @@ public class VarDotAutocompletions implements DotAutocompletions {
 			try {
 				final Class<?> c = Class.forName(this.className);
 				for (final Field f: c.getFields())
-					ac.add(new CompletionText(className, c, f));
+					ac.add(new CompletionText(f.getName(), c, f));
 				for (final Method m: c.getMethods())
-					ac.add(new CompletionText(className, c, m)); // TODO could do a parameter-driven autocompletion
+					ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
