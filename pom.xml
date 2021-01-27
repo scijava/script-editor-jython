@@ -51,6 +51,15 @@
 				<role>debugger</role>
 			</roles>
 		</developer>
+		<developer>
+			<id>haesleinhuepf</id>
+			<name>Robert Haase</name>
+			<url>https://imagej.net/User:Haesleinhuepf</url>
+			<roles>
+				<role>developer</role>
+				<role>debugger</role>
+			</roles>
+		</developer>
 	</developers>
 	<contributors>
 		<contributor>
