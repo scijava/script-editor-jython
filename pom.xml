@@ -98,7 +98,7 @@
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
 		<jython-slim.version>2.7.2</jython-slim.version>
-		<script-editor.version>0.5.11</script-editor.version>
+		<script-editor.version>0.5.12</script-editor.version>
 	</properties>
 
 	<repositories>
