@@ -258,7 +258,7 @@ public class JythonAutoCompletions implements AutoCompletionListener
 			final String lowerCaseSeed = seed.toLowerCase();
 			List<Completion> list = da.get().stream()
 					.filter(s -> s.getReplacementText().toLowerCase().contains(lowerCaseSeed))
-					.map(s -> s.getCompletion(provider, pre + s.getReplacementText()))
+					.map(s -> s.getCompletion(provider, pre + s.getReplacementText(), s.getReplacementText().startsWith(seed) ? 1 : 0))
 					.collect(Collectors.toList());
 			sortCompletions(list, seed);
 			return list;
