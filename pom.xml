@@ -97,8 +97,9 @@
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
-		<jython-slim.version>2.7.2</jython-slim.version>
+
 		<script-editor.version>0.5.12</script-editor.version>
+		<antlr-runtime.version>3.5.2</antlr-runtime.version>
 	</properties>
 
 	<repositories>
@@ -116,13 +117,17 @@
 		</dependency>
 		<!-- Third-party dependencies -->
 		<dependency>
-			<groupId>org.python</groupId>
-			<artifactId>jython-slim</artifactId>
+			<groupId>com.fifesoft</groupId>
+			<artifactId>autocomplete</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>net.imagej</groupId>
-			<artifactId>ij</artifactId>
-			<scope>test</scope>
+			<groupId>org.antlr</groupId>
+			<artifactId>antlr-runtime</artifactId>
+			<version>${antlr-runtime.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.python</groupId>
+			<artifactId>jython-slim</artifactId>
 		</dependency>
 	</dependencies>
 
