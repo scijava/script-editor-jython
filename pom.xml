@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>jython-autocompletion</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.0.2</version>
 
 	<name>Jython Autocompletion</name>
 	<description>Autocompletion for the jython language in the Script Editor</description>
@@ -78,7 +78,7 @@
 	<scm>
 		<connection>scm:git:git://github.com/fiji/jython-autocompletion</connection>
 		<developerConnection>scm:git:git@github.com:fiji/jython-autocompletion</developerConnection>
-		<tag>HEAD</tag>
+		<tag>jython-autocompletion-0.0.2</tag>
 		<url>https://github.com/fiji/jython-autocompletion</url>
 	</scm>
 	<issueManagement>
