@@ -86,8 +86,8 @@
 		<url>https://github.com/fiji/jython-autocompletion/issues</url>
 	</issueManagement>
 	<ciManagement>
-		<system>Travis CI</system>
-		<url>https://travis-ci.com/fiji/jython-autocompletion</url>
+		<system>GitHub Actions</system>
+		<url>https://github.com/fiji/jython-autocompletion/actions</url>
 	</ciManagement>
 
 	<properties>
