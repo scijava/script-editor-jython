@@ -1,2 +1,2 @@
-[![](https://travis-ci.com/fiji/jython-autocompletion.svg?branch=master)](https://travis-ci.com/fiji/jython-autocompletion)
+[![](https://github.com/fiji/jython-autocompletion/actions/workflows/build-main.yml/badge.svg)](https://github.com/fiji/jython-autocompletion/actions/workflows/build-main.yml)
 
