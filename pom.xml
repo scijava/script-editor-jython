@@ -100,6 +100,9 @@
 
 		<script-editor.version>0.5.12</script-editor.version>
 		<antlr-runtime.version>3.5.2</antlr-runtime.version>
+		
+		<!-- Temporarily disable DocLint -->
+		<doclint>none</doclint>
 	</properties>
 
 	<repositories>
