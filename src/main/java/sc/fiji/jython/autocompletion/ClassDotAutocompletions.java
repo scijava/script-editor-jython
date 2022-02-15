@@ -30,6 +30,14 @@ public class ClassDotAutocompletions extends DefVarDotAutocompletions {
 	final List<String> superclassNames; // List of superclasses
 	final List<CompletionText>dotAutocompletions; // List of class methods and fields
 	
+	/**
+	 * 
+	 * @param fnName
+	 * @param superclassNames
+	 * @param argumentNames
+	 * @param dotAutocompletions
+	 * @param class_scope
+	 */
 	public ClassDotAutocompletions(final String fnName, List<String> superclassNames,
 			final List<String> argumentNames, final List<CompletionText> dotAutocompletions, final Scope class_scope) {
 		super(fnName, null, argumentNames, class_scope);
@@ -57,7 +65,10 @@ public class ClassDotAutocompletions extends DefVarDotAutocompletions {
 		this.dotAutocompletions.add(entry);
 	}
 	
-	/** Make this be cda plus its own dotAutocompletions. */
+	/** Make this be cda plus its own dotAutocompletions.
+	 * 
+	 * @param cda
+	 */
 	public void mutateIntoPlus(final ClassDotAutocompletions cda) 
 	{
 		this.className = cda.className;

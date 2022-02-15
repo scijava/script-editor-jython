@@ -70,6 +70,8 @@ public class JythonScriptParser {
 	/**
 	 * Parse valid jython code.
 	 * 
+	 * @param code
+	 * 
 	 * @return The top-level {@code Scope}, which is empty (see {@code {@link Scope#isEmpty()}) when the code has errors and can't be parsed by {@code ParserFacade#parse(String, CompileMode, String, CompilerFlags)}.
 	 */
 	static public Scope parseAST(final String code) {
@@ -234,8 +236,8 @@ public class JythonScriptParser {
 	 * Adds a child Scope to the given parent Scope, and also a variable to the parent scope
 	 * with no class, just for the function name. Then populates the child scope.
 	 * 
-	 * @fn
-	 * @parent
+	 * @param fn
+	 * @param parent
 	 */
 	static public void parseFunctionDef(final FunctionDef fn, final Scope parent) {
 		// Get the function name
@@ -324,6 +326,7 @@ public class JythonScriptParser {
 	/** Discover the class returned by the right statement in an assignment.
 	 * 
 	 * @param right
+	 * @param scope
 	 */
 	static public DotAutocompletions parseRight(final PyObject right, final Scope scope) {
 		if (right instanceof Name) {
