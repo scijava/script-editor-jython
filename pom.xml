@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>jython-autocompletion</artifactId>
-	<version>0.0.4-SNAPSHOT</version>
+	<version>0.0.5-SNAPSHOT</version>
 
 	<name>Jython Autocompletion</name>
 	<description>Autocompletion for the jython language in the Script Editor</description>
