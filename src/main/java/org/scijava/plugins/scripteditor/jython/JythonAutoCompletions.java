@@ -19,7 +19,7 @@
  * <http://www.gnu.org/licenses/gpl-3.0.html>.
  * #L%
  */
-package org.scijava.jython.autocompletion;
+package org.scijava.plugins.scripteditor.jython;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,7 +42,6 @@ import org.fife.ui.autocomplete.Completion;
 import org.fife.ui.autocomplete.CompletionProvider;
 import org.python.indexer.types.NModuleType;
 import org.scijava.ui.swing.script.autocompletion.AutoCompletionListener;
-import org.scijava.ui.swing.script.autocompletion.JythonAutocompletionProvider;
 
 public class JythonAutoCompletions implements AutoCompletionListener
 {

@@ -19,9 +19,11 @@
  * <http://www.gnu.org/licenses/gpl-3.0.html>.
  * #L%
  */
-package org.scijava.jython.autocompletion;
+package org.scijava.plugins.scripteditor.jython;
 
-public class JythoScriptParserTest {
+import org.scijava.plugins.scripteditor.jython.JythonScriptParser;
+
+public class JythonScriptParserTest {
 	
 	static public String testCode = String.join("\n",
 			"from os import path",

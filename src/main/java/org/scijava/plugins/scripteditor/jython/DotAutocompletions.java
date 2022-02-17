@@ -19,7 +19,7 @@
  * <http://www.gnu.org/licenses/gpl-3.0.html>.
  * #L%
  */
-package org.scijava.jython.autocompletion;
+package org.scijava.plugins.scripteditor.jython;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
