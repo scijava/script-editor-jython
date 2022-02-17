@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>script-editor-jython</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.1.0</version>
 
 	<name>Jython Script Editor plugin</name>
 	<description>Jython language support for SciJava Script Editor.</description>
@@ -90,7 +90,7 @@
 	<scm>
 		<connection>scm:git:git://github.com/scijava/script-editor-jython</connection>
 		<developerConnection>scm:git:git@github.com:scijava/script-editor-jython</developerConnection>
-		<tag>HEAD</tag>
+		<tag>script-editor-jython-0.1.0</tag>
 		<url>https://github.com/scijava/script-editor-jython</url>
 	</scm>
 	<issueManagement>
