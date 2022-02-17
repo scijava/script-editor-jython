@@ -41,14 +41,8 @@ import org.fife.ui.autocomplete.BasicCompletion;
 import org.fife.ui.autocomplete.Completion;
 import org.fife.ui.autocomplete.CompletionProvider;
 import org.python.indexer.types.NModuleType;
-import org.scijava.ui.swing.script.autocompletion.AutoCompletionListener;
 
-public class JythonAutoCompletions implements AutoCompletionListener
-{
-	static {
-		// Register as listener for jython autocompletions
-		JythonAutocompletionProvider.addAutoCompletionListener(new JythonAutoCompletions());
-	}
+public class JythonAutoCompletions {
 	
 	static private final Pattern assign = Pattern.compile("^([ \\t]*)(([a-zA-Z_][a-zA-Z0-9_ \\t,]*)[ \\t]+=[ \\t]+(.*))$"),
 						         nameToken = Pattern.compile("^(.*?[ \\t]+|)([a-zA-Z_][a-zA-Z0-9_]+)$"),
@@ -98,7 +92,6 @@ public class JythonAutoCompletions implements AutoCompletionListener
 	
 	public JythonAutoCompletions() {}
 
-	@Override
 	public List<Completion> completionsFor(final CompletionProvider provider, String codeWithoutLastLine, final String lastLine, final String alreadyEnteredText) {
 		
 		// Replacing of text will start at crop, given the already entered text that is considered for replacement

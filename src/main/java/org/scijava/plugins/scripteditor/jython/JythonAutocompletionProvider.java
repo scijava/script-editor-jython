@@ -31,7 +31,6 @@ package org.scijava.plugins.scripteditor.jython;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,25 +43,13 @@ import org.fife.ui.autocomplete.BasicCompletion;
 import org.fife.ui.autocomplete.Completion;
 import org.fife.ui.autocomplete.DefaultCompletionProvider;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.scijava.ui.swing.script.autocompletion.AutoCompletionListener;
 import org.scijava.ui.swing.script.autocompletion.ClassUtil;
 import org.scijava.ui.swing.script.autocompletion.ImportCompletionImpl;
 import org.scijava.ui.swing.script.autocompletion.ImportFormat;
 
 public class JythonAutocompletionProvider extends DefaultCompletionProvider {
 	
-	static private final Vector<AutoCompletionListener> autocompletion_listeners = new Vector<>();
-	
-	static {
-		try {
-			// Load the class so that it adds itself to the autocompletion_listeners
-			@SuppressWarnings("unused")
-			Class<?> c = JythonAutoCompletions.class;
-		} catch (Throwable t) {
-			System.out.println("WARNING did not load JythonAutoCompletions");
-		}
-	}
-	
+	private final JythonAutoCompletions autoCompletions = new JythonAutoCompletions();
 	private final RSyntaxTextArea text_area;
 	private final ImportFormat formatter;
 
@@ -101,15 +88,6 @@ public class JythonAutocompletionProvider extends DefaultCompletionProvider {
 				.collect(Collectors.toList());
 	}
 	
-	static public void addAutoCompletionListener(final AutoCompletionListener listener) {
-		if (!autocompletion_listeners.contains(listener))
-			autocompletion_listeners.add(listener);
-	}
-	
-	static public void removeAutoCompletionListener(final AutoCompletionListener listener) {
-		autocompletion_listeners.remove(listener);
-	}
-	
 	@Override
 	public List<Completion> getCompletionsImpl(final JTextComponent comp) {
 		final ArrayList<Completion> completions = new ArrayList<>();
@@ -126,15 +104,13 @@ public class JythonAutocompletionProvider extends DefaultCompletionProvider {
 			return completions;
 		}
 		// Completions provided by listeners (e.g. for methods and fields and variables and builtins from jython-autocompletion package)
-		for (final AutoCompletionListener listener: new Vector<>(autocompletion_listeners)) {
-			try {
-				final List<Completion> cs = listener.completionsFor(this, codeWithoutLastLine, currentLine, alreadyEnteredText);
-				if (null != cs)
-					completions.addAll(cs);
-			} catch (Exception e) {
-				System.out.println("Failed to get autocompletions from " + listener);
-				e.printStackTrace();
-			}
+		try {
+			final List<Completion> cs = autoCompletions.completionsFor(this, codeWithoutLastLine, currentLine, alreadyEnteredText);
+			if (cs != null) completions.addAll(cs);
+		}
+		catch (Exception e) {
+			System.out.println("Failed to get autocompletions from " + autoCompletions);
+			e.printStackTrace();
 		}
 		// Java class discovery for completions with auto-imports
 		completions.addAll(getCompletions(alreadyEnteredText));
