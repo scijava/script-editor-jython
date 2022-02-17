@@ -13,7 +13,7 @@
 	<version>0.1.0-SNAPSHOT</version>
 
 	<name>Jython Script Editor plugin</name>
-	<description>Jython language support for SciJava Script Editor</description>
+	<description>Jython language support for SciJava Script Editor.</description>
 	<url>https://github.com/scijava/script-editor-jython</url>
 	<inceptionYear>2020</inceptionYear>
 	<organization>
@@ -22,8 +22,7 @@
 	</organization>
 	<licenses>
 		<license>
-			<name>GNU General Public License v3+</name>
-			<url>https://www.gnu.org/licenses/gpl.html</url>
+			<name>Simplified BSD License</name>
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
@@ -105,7 +104,7 @@
 
 	<properties>
 		<package-name>org.scijava.jython.autocompletion</package-name>
-		<license.licenseName>gpl_v3</license.licenseName>
+		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>SciJava developers.</license.copyrightOwners>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
