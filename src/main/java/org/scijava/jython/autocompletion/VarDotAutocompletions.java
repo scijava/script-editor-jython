@@ -21,8 +21,6 @@
  */
 package org.scijava.jython.autocompletion;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,15 +38,12 @@ public class VarDotAutocompletions implements DotAutocompletions {
 	@Override
 	public List<CompletionText> get() {
 		final List<CompletionText> ac = new ArrayList<>();
-		if (null != this.className) {
+		if (null != className) {
 			try {
-				final Class<?> c = Class.forName(this.className);
-				for (final Field f: c.getFields())
-					ac.add(new CompletionText(f.getName(), c, f));
-				for (final Method m: c.getMethods())
-					ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
-			} catch (Exception e) {
-				e.printStackTrace();
+				final Class<?> c = Class.forName(className);
+				DotAutocompletions.fieldsAndMethodsInto(c, ac);
+			} catch (final Exception e) {
+				System.out.println("Could not load class " + className + " :: " + e.getMessage());
 			}
 		}
 		return ac;

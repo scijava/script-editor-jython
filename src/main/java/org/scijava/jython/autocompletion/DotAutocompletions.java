@@ -23,6 +23,7 @@ package org.scijava.jython.autocompletion;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,6 +57,35 @@ public interface DotAutocompletions {
 			}
 		}
 		return ac;
+	}
+	
+
+	/** Collect static fields and static methods from {@code c} into {@code ac}.
+	 * 
+	 * @param c
+	 * @param ac
+	 */
+	static public void staticFieldsAndStaticMethodsInto(final Class<?> c, final List<CompletionText> ac) {
+		for (final Field f: c.getDeclaredFields())
+			if (Modifier.isStatic(f.getModifiers()))
+				ac.add(new CompletionText(f.getName(), c, f));
+		for (final Method m: c.getDeclaredMethods())
+			if (Modifier.isStatic(m.getModifiers()))
+				ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
+	}
+
+	/** Collect non-static fields and non-static methods of class {@code c} into {@code ac}.
+	 * 
+	 * @param c
+	 * @param ac
+	 */
+	static public void fieldsAndMethodsInto(final Class<?> c, final List<CompletionText> ac) {
+		for (final Field f: c.getDeclaredFields())
+			if (!Modifier.isStatic(f.getModifiers()))
+				ac.add(new CompletionText(f.getName(), c, f));
+		for (final Method m: c.getDeclaredMethods())
+			if (!Modifier.isStatic(m.getModifiers()))
+				ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
 	}
 
 }

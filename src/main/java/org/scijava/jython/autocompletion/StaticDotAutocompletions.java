@@ -21,9 +21,6 @@
  */
 package org.scijava.jython.autocompletion;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -61,7 +58,7 @@ public class StaticDotAutocompletions implements DotAutocompletions
 				}
 				// Or a java class:
 				try {
-					fieldsAndStaticMethodsInto(Class.forName(this.className), ac);
+					DotAutocompletions.staticFieldsAndStaticMethodsInto(Class.forName(this.className), ac);
 					return ac;
 				} catch (ClassNotFoundException cnfe) {
 					msg += "\nCannot find java class " + this.className;
@@ -77,7 +74,7 @@ public class StaticDotAutocompletions implements DotAutocompletions
 							.map(m -> m.getReturnType())
 							.distinct()
 							.collect(Collectors.toList())) {
-						fieldsAndMethodsInto(r, ac);
+						DotAutocompletions.fieldsAndMethodsInto(r, ac);
 					}
 					return ac;
 				} catch (ClassNotFoundException cnfe) {
@@ -93,24 +90,6 @@ public class StaticDotAutocompletions implements DotAutocompletions
 			}
 		}
 		return ac;
-	}
-
-	private void fieldsAndStaticMethodsInto(final Class<?> c, final List<CompletionText> ac) {
-		for (final Field f: c.getDeclaredFields())
-			if (Modifier.isStatic(f.getModifiers()))
-				ac.add(new CompletionText(f.getName(), c, f));
-		for (final Method m: c.getDeclaredMethods())
-			if (Modifier.isStatic(m.getModifiers()))
-				ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
-	}
-
-	private void fieldsAndMethodsInto(final Class<?> c, final List<CompletionText> ac) {
-		for (final Field f: c.getDeclaredFields())
-			if (!Modifier.isStatic(f.getModifiers()))
-				ac.add(new CompletionText(f.getName(), c, f));
-		for (final Method m: c.getDeclaredMethods())
-			if (!Modifier.isStatic(m.getModifiers()))
-				ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
 	}
 	
 	@Override
