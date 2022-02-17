@@ -163,6 +163,15 @@ public class JythonScriptParser {
 		return classes;
 	}
 	
+	static private DotAutocompletions maybeStaticToDot(final PythonTree node, final DotAutocompletions da) {
+		System.out.println("children count:" + node.getChildCount() + ", children: " + (null != node.getChildren() ? node.getChildren().stream().map(c -> c.toString()).collect(Collectors.toList()) : ""));
+		if (node.getChildCount() > 0 && da instanceof StaticDotAutocompletions) {
+			// It's a right expression (a constructor invocation assigned to a variable on the left) so the left is an instance of the class
+			return new VarDotAutocompletions(da.getClassname());
+		}
+		return da;
+	}
+	
 	/**
 	 * Parse an assignment (an equal sign) to find out the class of the left side (the variable)
 	 * by asking the right side about what it is or returns.
@@ -186,13 +195,13 @@ public class JythonScriptParser {
 					continue;
 				}
 				final String name = ct.toString();
-				final DotAutocompletions val = parseRight(right.getChildren().get(i), scope);
+				final DotAutocompletions val = maybeStaticToDot(right, parseRight(right.getChildren().get(i), scope));
 				if (null != val) assigns.put(name, val);
 			}
 		} else {
 			// Left is a Name: simple assignment e.g. "one = 1"
 			if ( left instanceof Name ) {
-				assigns.put(((Name)left).getInternalId(), parseRight(right, scope));
+				assigns.put(((Name)left).getInternalId(), maybeStaticToDot(right, parseRight(right, scope)));
 				return assigns;
 			}
 			// Assignment to an attribute
