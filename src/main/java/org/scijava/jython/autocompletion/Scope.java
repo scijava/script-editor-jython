@@ -19,7 +19,7 @@
  * <http://www.gnu.org/licenses/gpl-3.0.html>.
  * #L%
  */
-package sc.fiji.jython.autocompletion;
+package org.scijava.jython.autocompletion;
 
 import java.io.File;
 import java.nio.file.FileSystems;
