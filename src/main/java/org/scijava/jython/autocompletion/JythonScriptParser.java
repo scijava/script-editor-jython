@@ -72,7 +72,7 @@ public class JythonScriptParser {
 	 * 
 	 * @param code
 	 * 
-	 * @return The top-level {@code Scope}, which is empty (see {@code {@link Scope#isEmpty()}) when the code has errors and can't be parsed by {@code ParserFacade#parse(String, CompileMode, String, CompilerFlags)}.
+	 * @return The top-level {@link Scope}, which is empty (see {@link Scope#isEmpty()}) when the code has errors and can't be parsed by {@link ParserFacade#parse(String, CompileMode, String, CompilerFlags)}.
 	 */
 	static public Scope parseAST(final String code) {
 		// The code includes from beginning of the file until the point at which an autocompletion is requested.
