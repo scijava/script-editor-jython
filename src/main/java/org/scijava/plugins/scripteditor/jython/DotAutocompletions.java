@@ -60,7 +60,7 @@ public interface DotAutocompletions {
 				for (final Method m: c.getMethods())
 					ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
 			} catch (final Exception e) {
-				System.out.println("Could not load class " + className + " :: " + e.getMessage());
+				if (JythonAutocompletionProvider.debug >= 2) System.out.println("Could not load class " + className + " :: " + e.getMessage());
 			}
 		}
 		return ac;

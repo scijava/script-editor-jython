@@ -89,11 +89,11 @@ public class StaticDotAutocompletions implements DotAutocompletions
 				}
 				
 				if (null != msg) {
-					System.out.println(msg);
+					if (JythonAutocompletionProvider.debug >= 1) System.out.println(msg);
 				}
 			} catch (Exception e) {
-				if (null != msg) System.out.println(msg);
-				e.printStackTrace();
+				if (null != msg && JythonAutocompletionProvider.debug >= 1) System.out.println(msg);
+				if (JythonAutocompletionProvider.debug >= 2) e.printStackTrace();
 			}
 		}
 		return ac;
