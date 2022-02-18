@@ -82,7 +82,8 @@ public class JythonAutoCompletions {
 									.collect(Collectors.toList());
 							return modules;
 						} catch (Exception e) {
-							e.printStackTrace();
+							System.out.println("Failed to load jython module");
+							if (JythonAutocompletionProvider.debug >= 2) e.printStackTrace();
 						} finally {
 							if (null != jar) try { jar.close(); } catch (Exception ee) {}
 						}
@@ -90,7 +91,8 @@ public class JythonAutoCompletions {
 					}
 				}).findFirst().orElse(Collections.emptyList());
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("Cannot find jython-slim-*.jar file");
+			if (JythonAutocompletionProvider.debug >= 2) e.printStackTrace();
 		} finally {
 			jython_jar_modules = ls;
 		}
@@ -138,7 +140,7 @@ public class JythonAutoCompletions {
 			JythonScriptParser.print("PYTHONPATH:\n" + String.join("\n", Scope.indexer.getLoadPath()));
 		} catch (Exception e) {
 			System.out.println("Failed to add path from sys.path.append expression.");
-			e.printStackTrace();
+			if (JythonAutocompletionProvider.debug >= 2) e.printStackTrace();
 		}
 		
 		// Situations to autocomplete:
@@ -170,7 +172,8 @@ public class JythonAutoCompletions {
 											: s.substring(dir.length(), s.length() -3))  // remove ending ".py"
 											.replace('/', '.'));
 						} catch (IOException e) {
-							e.printStackTrace();
+							System.out.println("Failed to read jython module file.");
+							if (JythonAutocompletionProvider.debug >= 2) e.printStackTrace();
 						}
 						return null;
 					}).flatMap(Function.identity())

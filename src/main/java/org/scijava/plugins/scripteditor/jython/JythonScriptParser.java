@@ -69,11 +69,8 @@ import org.python.core.PyObject;
 import org.python.indexer.types.NModuleType;
 import org.scijava.ui.swing.script.autocompletion.CompletionText;
 
-public class JythonScriptParser {
-	
-	/** Controls whether debugging statements print to stdout. */
-	static public boolean DEBUG = false;
-	
+public class JythonScriptParser
+{	
 	/**
 	 * Parse valid jython code.
 	 * 
@@ -88,7 +85,7 @@ public class JythonScriptParser {
 			final mod m = ParserFacade.parse(code, CompileMode.exec, "<none>", new CompilerFlags());
 			return parseNode(m.getChildren(), null, null);
 		} catch (Throwable t) {
-			t.printStackTrace();
+			if (JythonAutocompletionProvider.debug >= 2) t.printStackTrace();
 			return new Scope(null);
 		}
 	}
@@ -171,7 +168,7 @@ public class JythonScriptParser {
 	}
 	
 	static private DotAutocompletions maybeStaticToDot(final PythonTree node, final DotAutocompletions da) {
-		System.out.println("children count:" + node.getChildCount() + ", children: " + (null != node.getChildren() ? node.getChildren().stream().map(c -> c.toString()).collect(Collectors.toList()) : ""));
+		print("children count:" + node.getChildCount() + ", children: " + (null != node.getChildren() ? node.getChildren().stream().map(c -> c.toString()).collect(Collectors.toList()) : ""));
 		if (node.getChildCount() > 0 && da instanceof StaticDotAutocompletions) {
 			// It's a right expression (a constructor invocation assigned to a variable on the left) so the left is an instance of the class
 			return new VarDotAutocompletions(da.getClassname());
@@ -198,7 +195,7 @@ public class JythonScriptParser {
 			for (int i=0; i<right.getChildren().size(); ++i) {
 				final CommonTree ct = left.getChildren().get(i).getNode();
 				if (null == ct) {
-					System.out.println("null for left: '" + left + "'" + " at child node " + i);
+					print("null for left: '" + left + "'" + " at child node " + i);
 					continue;
 				}
 				final String name = ct.toString();
@@ -400,6 +397,6 @@ public class JythonScriptParser {
 	}
 
 	static public final void print(Object s) {
-		if (DEBUG) System.out.println(s);
+		if (JythonAutocompletionProvider.debug >= 2) System.out.println(s);
 	}
 }

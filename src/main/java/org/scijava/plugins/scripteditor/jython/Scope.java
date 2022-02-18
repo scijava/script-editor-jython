@@ -112,8 +112,8 @@ public class Scope {
 				mod = indexer.loadModule(qname);
 				if (null == mod) return null;
 			} catch (Exception e) {
-				System.out.println("Could not load python module named " + qname);
-				e.printStackTrace();
+				if (JythonAutocompletionProvider.debug >= 1) System.out.println("Could not load python module named " + qname);
+				if (JythonAutocompletionProvider.debug >= 2) e.printStackTrace();
 				return null;
 			}
 			try {
@@ -131,9 +131,11 @@ public class Scope {
 					System.out.println("Python module " + qname + " doesn't have an associated file path.");
 				}
 			} catch (Exception e) {
-				System.out.println("Could not load python module named " + qname);
-				System.out.println(e.getMessage());
-				e.printStackTrace();
+				if (JythonAutocompletionProvider.debug >= 1) {
+					System.out.println("Could not load python module named " + qname);
+					System.out.println(e.getMessage());
+				}
+				if (JythonAutocompletionProvider.debug >= 2) e.printStackTrace();
 			}
 			return mod;
 		}
