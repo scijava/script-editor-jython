@@ -52,7 +52,7 @@ public class VarDotAutocompletions implements DotAutocompletions {
 				final Class<?> c = Class.forName(className);
 				DotAutocompletions.fieldsAndMethodsInto(c, ac);
 			} catch (final Exception e) {
-				if (JythonAutocompletionProvider.debug >= 2) System.out.println("Could not load class " + className + " :: " + e.getMessage());
+				JythonDev.print("Could not load class " + className, e);
 			}
 		}
 		return ac;

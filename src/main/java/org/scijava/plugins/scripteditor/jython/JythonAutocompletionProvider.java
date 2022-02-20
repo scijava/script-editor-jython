@@ -53,15 +53,6 @@ public class JythonAutocompletionProvider extends DefaultCompletionProvider {
 	private final RSyntaxTextArea text_area;
 	private final ImportFormat formatter;
 	
-	/** Adjust value to see debgging information, including:
-	 * 0: nothing at all;
-	 * 1: plus information messages;
-	 * 2: plus {@code Exception} stack traces.
-	 * 
-	 * Defaults to 1.
-	 */
-	static public int debug = 1;
-
 	public JythonAutocompletionProvider(final RSyntaxTextArea text_area, final ImportFormat formatter) {
 		this.text_area = text_area;
 		this.formatter = formatter;
@@ -119,8 +110,8 @@ public class JythonAutocompletionProvider extends DefaultCompletionProvider {
 			if (cs != null) completions.addAll(cs);
 		}
 		catch (Exception e) {
-			if (debug >= 1) System.out.println("Failed to get autocompletions from " + autoCompletions);
-			if (debug >= 2) e.printStackTrace();
+			JythonDev.print("Failed to get autocompletions from " + autoCompletions);
+			JythonDev.printError(e);
 		}
 		// Java class discovery for completions with auto-imports
 		completions.addAll(getCompletions(alreadyEnteredText));
@@ -147,7 +138,7 @@ public class JythonAutocompletionProvider extends DefaultCompletionProvider {
 			final String packageName = m2.group(3);
 			String className = m2.group(4); // incomplete or empty, or multiple separated by commas with the last one incomplete or empty
 
-			if (debug >= 2) System.out.println("m2 matches className: " + className);
+			JythonDev.print("m2 matches className: " + className);
 			final String[] bycomma = className.split(",");
 			String precomma = "";
 			if (bycomma.length > 1) {
@@ -277,7 +268,7 @@ public class JythonAutocompletionProvider extends DefaultCompletionProvider {
 			final String[] varAndSeed = words[words.length - 1].split("\\.");
 			return (varAndSeed.length == 2) ? varAndSeed : new String[] { varAndSeed[varAndSeed.length - 1], "" };
 		} catch (final BadLocationException e) {
-			if (debug >= 2) e.printStackTrace();
+			JythonDev.printError(e);
 		}
 		return null;
 	}

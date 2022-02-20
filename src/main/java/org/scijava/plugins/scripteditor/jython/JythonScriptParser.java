@@ -86,7 +86,7 @@ public class JythonScriptParser
 			final mod m = ParserFacade.parse(code, CompileMode.exec, "<none>", new CompilerFlags());
 			return parseNode(m.getChildren(), null, null);
 		} catch (Throwable t) {
-			if (JythonAutocompletionProvider.debug >= 2) t.printStackTrace();
+			JythonDev.printError(t);
 			return new Scope(null);
 		}
 	}
@@ -110,7 +110,7 @@ public class JythonScriptParser
 	static public void parseNode(final Scope scope, final List<PythonTree> children, final String className) {
 		
 		for (final PythonTree child : children) {
-			print(child.getClass());
+			JythonDev.printTrace(child.getClass());
 			
 			if (child instanceof ImportFrom)
 				scope.imports.putAll(parseImportFromStatement( (ImportFrom)child ));
@@ -129,7 +129,7 @@ public class JythonScriptParser
 				// no new scope in if/for/while/with/try/ statements in python
 				parseNode(scope, child.getChildren(), null);
 			else
-				print("IGNORING child: " + child + " -- " + (null != child.getChildren() ?
+				JythonDev.printTrace("IGNORING child: " + child + " -- " + (null != child.getChildren() ?
 						String.join("::", child.getChildren().stream().map(c -> c.toString()).collect(Collectors.toList()))
 						: ""));
 		}
@@ -137,7 +137,7 @@ public class JythonScriptParser
 	
 	static public void parseExpr(final Expr child, final Scope scope) {
 		// child.getText() shows child is the base
-		print("Expr: " + child.getText() + ", " + child.getInternalValue() + ", " + child.getValue() + ", children: " + String.join(", ", child.getChildren().stream().map(PythonTree::toString).collect(Collectors.toList())));
+		JythonDev.printTrace("Expr: " + child.getText() + ", " + child.getInternalValue() + ", " + child.getValue() + ", children: " + String.join(", ", child.getChildren().stream().map(PythonTree::toString).collect(Collectors.toList())));
 	}
 
 	/**
@@ -169,7 +169,7 @@ public class JythonScriptParser
 	}
 	
 	static private DotAutocompletions maybeStaticToDot(final PythonTree node, final DotAutocompletions da) {
-		print("children count:" + node.getChildCount() + ", children: " + (null != node.getChildren() ? node.getChildren().stream().map(c -> c.toString()).collect(Collectors.toList()) : ""));
+		JythonDev.printTrace("children count:" + node.getChildCount() + ", children: " + (null != node.getChildren() ? node.getChildren().stream().map(c -> c.toString()).collect(Collectors.toList()) : ""));
 		if (node.getChildCount() > 0 && da instanceof StaticDotAutocompletions) {
 			// It's a right expression (a constructor invocation assigned to a variable on the left) so the left is an instance of the class
 			return new VarDotAutocompletions(da.getClassname());
@@ -196,7 +196,7 @@ public class JythonScriptParser
 			for (int i=0; i<right.getChildren().size(); ++i) {
 				final CommonTree ct = left.getChildren().get(i).getNode();
 				if (null == ct) {
-					print("null for left: '" + left + "'" + " at child node " + i);
+					JythonDev.printTrace("null for left: '" + left + "'" + " at child node " + i);
 					continue;
 				}
 				final String name = ct.toString();
@@ -303,7 +303,7 @@ public class JythonScriptParser
 		for (final expr e: c.getInternalBases()) {
 			final DotAutocompletions da = parent.find(e.getText(), null);
 			if (null == da || null == da.getClassname())
-				print("Could not find completions and className for " + e.getText());
+				JythonDev.print("Could not find completions and className for " + e.getText());
 			else
 				superclassNames.add(da.getClassname());
 		}
@@ -376,7 +376,7 @@ public class JythonScriptParser
 						return new VarDotAutocompletions(m.getReturnType().getName());
 				return new VarDotAutocompletions(c.getField(name).getType().getName());
 			} catch (Exception e) {
-				print("Could not find method or field " + name + " in class " + className);
+				JythonDev.print("Could not find method or field " + name + " in class " + className, e);
 			}
 			// Could also be a python module, e.g. attempting to autocomplete "os.path."
 			try {
@@ -384,7 +384,7 @@ public class JythonScriptParser
 				if (null != module)
 					return new StaticDotAutocompletions(className  + "." + name);
 			} catch (Exception e) {
-				print("Not a python module: " + className + "." + name);
+				JythonDev.printTrace("Not a python module: " + className + "." + name);
 			}
 		}
 		if (right instanceof Call) {
@@ -398,10 +398,8 @@ public class JythonScriptParser
 			return parseRight(yield.getValue(), scope);
 		}
 		
+		JythonDev.printTrace("Unsupported 'right' is: " + right + " " + (right != null ? right.getClass() : ""));
+		
 		return DotAutocompletions.EMPTY;
-	}
-
-	static public final void print(Object s) {
-		if (JythonAutocompletionProvider.debug >= 2) System.out.println(s);
 	}
 }

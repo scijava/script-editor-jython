@@ -54,7 +54,7 @@ public class StaticDotAutocompletions implements DotAutocompletions
 			try {
 				// Check first if it's a python module
 				final NModuleType module = Scope.loadPythonModule(this.className); // Scope.indexer.getBuiltinModule(this.className);
-				System.out.println("module is: " + module);
+				JythonDev.printTrace("module is: " + module);
 				if (null != module) {
 					module.getTable().keySet().forEach( m -> ac.add(new CompletionText(m)));
 					// Not need to remove: a file system watcher will do so when the module file is updated or deleted.
@@ -89,11 +89,10 @@ public class StaticDotAutocompletions implements DotAutocompletions
 				}
 				
 				if (null != msg) {
-					if (JythonAutocompletionProvider.debug >= 1) System.out.println(msg);
+					JythonDev.print(msg);
 				}
 			} catch (Exception e) {
-				if (null != msg && JythonAutocompletionProvider.debug >= 1) System.out.println(msg);
-				if (JythonAutocompletionProvider.debug >= 2) e.printStackTrace();
+				JythonDev.print(msg, e);
 			}
 		}
 		return ac;
