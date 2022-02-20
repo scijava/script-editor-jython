@@ -28,8 +28,10 @@
  */
 package org.scijava.plugins.scripteditor.jython;
 
+import org.fife.ui.autocomplete.Completion;
 import org.fife.ui.autocomplete.CompletionProvider;
 import org.fife.ui.autocomplete.FunctionCompletion;
+import org.fife.ui.autocomplete.VariableCompletion;
 
 public class CustomFunctionCompletion extends FunctionCompletion
 {
@@ -43,6 +45,10 @@ public class CustomFunctionCompletion extends FunctionCompletion
 	@Override
 	public String getName() {
 		return super.getName() + "()"; // for listing with fields and methods
+	}
+	
+	protected String getSuperName() {
+		return super.getName();
 	}
 	
 	@Override
@@ -96,4 +102,25 @@ public class CustomFunctionCompletion extends FunctionCompletion
 		return super.getShortDescription();
 	}
 	
+	@Override
+	public int compareTo(final Completion c2)
+	{
+		if ( c2 == this ) return 0;
+		if ( c2 instanceof CustomFunctionCompletion ) {
+			final CustomFunctionCompletion other = (CustomFunctionCompletion)c2;
+			int r = this.getSuperName().compareToIgnoreCase(other.getSuperName()); // must be lower case because AbstractCompletion does it that way
+			if ( 0 == r ) {
+				if ( this.getParamCount() == other.getParamCount() ) {
+					for (int i=0; i<this.getParamCount(); ++i) {
+						r = this.getParam(i).getType().compareTo(other.getParam(i).getType());
+						if ( 0 != r ) return r;
+					}
+					return 0;
+				}
+				return this.getParamCount() < other.getParamCount() ? -1 : 1;
+			}
+			return r;
+		}
+		return this.getSuperName().compareToIgnoreCase(c2.getReplacementText()); // must be lower case because AbstractCompletion does it that way
+	}
 }
