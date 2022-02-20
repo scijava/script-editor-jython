@@ -32,7 +32,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.scijava.ui.swing.script.autocompletion.CompletionText;
 
@@ -49,6 +51,10 @@ public interface DotAutocompletions {
 	}
 
 	public List<CompletionText> get();
+	
+	default public Stream<CompletionText> getStream() {
+		return get().stream();
+	}
 
 	static public List<CompletionText> getPublicFieldsAndMethods(final String className) {
 		final List<CompletionText> ac = new ArrayList<>();
@@ -60,7 +66,7 @@ public interface DotAutocompletions {
 				for (final Method m: c.getMethods())
 					ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
 			} catch (final Exception e) {
-				if (JythonAutocompletionProvider.debug >= 2) System.out.println("Could not load class " + className + " :: " + e.getMessage());
+				JythonDev.print("Could not load class " + className, e);
 			}
 		}
 		return ac;
@@ -78,7 +84,7 @@ public interface DotAutocompletions {
 				ac.add(new CompletionText(f.getName(), c, f));
 		for (final Method m: c.getDeclaredMethods())
 			if (Modifier.isStatic(m.getModifiers()))
-				ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
+				ac.add(new CompletionText(m.getName() + "()", c, m));
 	}
 
 	/** Collect non-static fields and non-static methods of class {@code c} into {@code ac}.
@@ -92,7 +98,27 @@ public interface DotAutocompletions {
 				ac.add(new CompletionText(f.getName(), c, f));
 		for (final Method m: c.getDeclaredMethods())
 			if (!Modifier.isStatic(m.getModifiers()))
-				ac.add(new CompletionText(m.getName() + "()", c, m)); // TODO could do a parameter-driven autocompletion
+				ac.add(new CompletionText(m.getName() + "()", c, m));
+	}
+	
+	static public Stream<CompletionText> staticFieldsAndStaticMethodsStream(final Class<?> c, final boolean staticFields, final boolean staticMethods) {
+		return Stream.concat(
+					Arrays.stream(c.getDeclaredFields())
+					.filter(f -> Modifier.isStatic(f.getModifiers()))
+					.map(f -> new CompletionText(f.getName(), c, f)),
+					Arrays.stream(c.getDeclaredMethods())
+					.filter(m -> Modifier.isStatic(m.getModifiers()))
+					.map(m -> new CompletionText(m.getName(), c, m)));
+	}
+	
+	static public Stream<CompletionText> fieldsAndMethodsStream(final Class<?> c, final boolean staticFields, final boolean staticMethods) {
+		return Stream.concat(
+					Arrays.stream(c.getFields())
+					.filter(f -> !Modifier.isStatic(f.getModifiers()))
+					.map(f -> new CompletionText(f.getName(), c, f)),
+					Arrays.stream(c.getMethods())
+					.filter(m -> !Modifier.isStatic(m.getModifiers()))
+					.map(m -> new CompletionText(m.getName(), c, m)));
 	}
 
 }
