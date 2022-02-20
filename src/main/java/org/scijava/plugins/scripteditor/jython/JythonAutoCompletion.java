@@ -44,6 +44,7 @@ public class JythonAutoCompletion extends AutoCompletion {
 
 	public JythonAutoCompletion(final CompletionProvider provider) {
 		super(provider);
+		this.setParameterAssistanceEnabled(true);
 		this.setShowDescWindow(true);
 	}
 	

@@ -41,10 +41,12 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.python.indexer.Indexer;
 import org.python.indexer.types.NModuleType;
 import org.scijava.ui.swing.script.autocompletion.CompletionText;
+
 
 
 public class Scope {
@@ -78,7 +80,7 @@ public class Scope {
 							return;
 						}
 						if (keys.containsKey(key)) {
-							System.out.println("Python module at:\n" + keys.get(key) + "\n ... was updated. Clearing indexer cache.");
+							JythonDev.print("Python module at:\n" + keys.get(key) + "\n ... was updated. Clearing indexer cache.");
 							// One of the files changed: unload all, given that parent modules would have been loaded as well
 							// and it gets complicated quickly to find out which need to be reloaded and which don't.
 							keys.clear();
@@ -92,7 +94,7 @@ public class Scope {
 			module_watcher.setPriority(Thread.NORM_PRIORITY);
 			module_watcher.start();
 		} catch (Exception e ){
-			System.out.println("Failed to start filesystem watcher service for python modules");
+			JythonDev.print("Failed to start filesystem watcher service for python modules", e);
 		}
 	}
 	
@@ -112,8 +114,7 @@ public class Scope {
 				mod = indexer.loadModule(qname);
 				if (null == mod) return null;
 			} catch (Exception e) {
-				if (JythonAutocompletionProvider.debug >= 1) System.out.println("Could not load python module named " + qname);
-				if (JythonAutocompletionProvider.debug >= 2) e.printStackTrace();
+				JythonDev.print("Could not load python module named " + qname, e);
 				return null;
 			}
 			try {
@@ -128,14 +129,10 @@ public class Scope {
 							StandardWatchEventKinds.ENTRY_DELETE);
 					keys.put(key, path);
 				} else {
-					System.out.println("Python module " + qname + " doesn't have an associated file path.");
+					JythonDev.print("Python module " + qname + " doesn't have an associated file path.");
 				}
 			} catch (Exception e) {
-				if (JythonAutocompletionProvider.debug >= 1) {
-					System.out.println("Could not load python module named " + qname);
-					System.out.println(e.getMessage());
-				}
-				if (JythonAutocompletionProvider.debug >= 2) e.printStackTrace();
+				JythonDev.print("Could not load python module named " + qname, e);	
 			}
 			return mod;
 		}
@@ -197,6 +194,68 @@ public class Scope {
 			scope = scope.parent;
 		}
 		return completions;
+	}
+	
+
+	/** Find vars by type, recursively upstream the nested scopes, listing first those of the innermost scope.
+	 *
+	 * @param clazz
+	 */
+	public Stream<String> findVarsByType(final String type, final Class<?> clazz) {
+		Stream<String> varNames = new ArrayList<String>().stream();
+		Scope scope = this;
+		JythonDev.printTrace("Scope.findVarsByType: searching for type " + type + " and class " + clazz.getCanonicalName());
+		while (null != scope) {
+			varNames = Stream.concat(varNames,
+					scope.vars.entrySet().stream()
+						.filter(e -> {
+							try {
+								JythonDev.printTrace("Scope.findVarsByType, testing: " + e.getKey() + " :: " + e.getValue() + " with class " + e.getValue().getClassname());
+								if (e.getKey().startsWith("____")) return false; // injected variables in JythonAutoCompletions.completionsFor
+								final String classname = e.getValue().getClassname();
+								if (null == classname) return false;
+								if (type.equals(classname)) {
+									JythonDev.printTrace("type == classname: " + type);
+									return true;
+								}
+								// Handle compatible numeric arguments
+								if (Number.class.isAssignableFrom(clazz)) {
+									// Python only has long or float
+									if (classname.equals("float")) {
+										return true; // all numeric types will fit
+									}
+									if (classname.equals("long")) {
+										// or "long", but that was exact-matched earlier
+										return type.equals("int")
+												|| type.equals("short")
+												|| type.equals("byte")
+												|| clazz.isAssignableFrom(Long.class)
+												|| clazz.isAssignableFrom(Integer.class)
+												|| clazz.isAssignableFrom(Short.class)
+												|| clazz.isAssignableFrom(Byte.class);
+									}
+								}
+								// Fix class when it's a primitive number
+								Class<?> c = null;
+								switch (classname) {
+								case "long": c = Long.class; break;
+								case "float": c = Float.class; break;
+								default: c = Class.forName(classname);
+								}
+								// Search for subclass or interface
+								return clazz.isAssignableFrom(c);
+								
+								// TODO: search for methods of non-matching classes that return a matching type
+								
+							} catch (ClassNotFoundException e1) {
+								JythonDev.print("Cannot load class " + e.getValue(), e1);
+							}
+							return false;
+						})
+						.map(e -> e.getKey()));
+			scope = scope.parent;
+		}
+		return varNames;
 	}
 	
 	

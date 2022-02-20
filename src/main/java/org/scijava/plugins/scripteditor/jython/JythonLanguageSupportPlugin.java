@@ -53,6 +53,7 @@ public class JythonLanguageSupportPlugin extends  AbstractLanguageSupport implem
 	
 	public JythonLanguageSupportPlugin() {
 		setAutoCompleteEnabled(true);
+		setParameterAssistanceEnabled(true);
 		setShowDescWindow(true);
 	}
 
@@ -65,6 +66,7 @@ public class JythonLanguageSupportPlugin extends  AbstractLanguageSupport implem
 	public void install(final RSyntaxTextArea textArea) {
 		this.text_area = textArea;
 		this.ac = this.createAutoCompletion(null);
+		this.ac.setParameterAssistanceEnabled(true);
 		this.ac.install(textArea);
 		// store upstream
 		super.installImpl(textArea, this.ac);

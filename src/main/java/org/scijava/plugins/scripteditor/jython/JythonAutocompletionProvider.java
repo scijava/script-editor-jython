@@ -65,6 +65,7 @@ public class JythonAutocompletionProvider extends DefaultCompletionProvider {
 	public JythonAutocompletionProvider(final RSyntaxTextArea text_area, final ImportFormat formatter) {
 		this.text_area = text_area;
 		this.formatter = formatter;
+		this.setParameterizedCompletionParams('(', ", ", ')'); // for methods and functions
 		new Thread(ClassUtil::ensureCache).start();
 	}
 	
