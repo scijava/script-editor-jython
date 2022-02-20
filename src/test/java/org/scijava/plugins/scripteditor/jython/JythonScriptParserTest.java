@@ -113,7 +113,6 @@ public class JythonScriptParserTest {
 	static public final void main(String[] args) {
 		try {
 			final String code = testCode3;
-			JythonScriptParser.DEBUG = true;
 			final int lastLineBreak = code.lastIndexOf("\n");
 			final String codeToParse = -1 == lastLineBreak ? code : code.substring(0, lastLineBreak);
 			JythonScriptParser.parseAST(codeToParse).print("");
