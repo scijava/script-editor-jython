@@ -51,6 +51,7 @@ import org.python.antlr.ast.ImportFrom;
 import org.python.antlr.ast.Name;
 import org.python.antlr.ast.Num;
 import org.python.antlr.ast.Return;
+import org.python.antlr.ast.Str;
 import org.python.antlr.ast.TryExcept;
 import org.python.antlr.ast.TryFinally;
 import org.python.antlr.ast.Tuple;
@@ -352,8 +353,12 @@ public class JythonScriptParser
 		if (right instanceof Num) {
 			// e.g. return 10
 			// e.g. n = 42
-			final Class<?> c = ((Num)right).getInternalN().getClass() == PyInteger.class ? Long.TYPE : Double.TYPE;
+			final Class<?> c = ((Num)right).getInternalN().getClass() == PyInteger.class ? Long.TYPE : Double.TYPE; // TODO this creates trouble for Scope.findVarsByType and would be perhaps easier as Long and Double (non-primitive).
 			return new VarDotAutocompletions(c.toString());
+		}
+		if (right instanceof Str) {
+			// Literal String
+			return new VarDotAutocompletions(String.class.getCanonicalName());
 		}
 		if (right instanceof Attribute) {
 			// e.g. a field or a method
