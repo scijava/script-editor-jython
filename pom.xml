@@ -113,7 +113,7 @@
 		<antlr-runtime.version>3.5.2</antlr-runtime.version>
 
 		<!-- TEMP: Until pom-scijava 32.0.0 is released and used here. -->
-		<script-editor.version>0.6.0</script-editor.version>
+		<script-editor.version>0.6.2</script-editor.version>
 	</properties>
 
 	<dependencies>
