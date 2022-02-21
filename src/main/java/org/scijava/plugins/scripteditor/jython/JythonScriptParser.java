@@ -40,6 +40,7 @@ import org.antlr.runtime.tree.CommonTree;
 import org.python.antlr.PythonTree;
 import org.python.antlr.ast.Assign;
 import org.python.antlr.ast.Attribute;
+import org.python.antlr.ast.BinOp;
 import org.python.antlr.ast.Call;
 import org.python.antlr.ast.ClassDef;
 import org.python.antlr.ast.Expr;
@@ -65,6 +66,7 @@ import org.python.antlr.base.mod;
 import org.python.core.CompileMode;
 import org.python.core.CompilerFlags;
 import org.python.core.ParserFacade;
+import org.python.core.PyFloat;
 import org.python.core.PyInteger;
 import org.python.core.PyObject;
 import org.python.indexer.types.NModuleType;
@@ -354,7 +356,7 @@ public class JythonScriptParser
 			// e.g. return 10
 			// e.g. n = 42
 			final Class<?> c = ((Num)right).getInternalN().getClass() == PyInteger.class ? Long.TYPE : Double.TYPE; // TODO this creates trouble for Scope.findVarsByType and would be perhaps easier as Long and Double (non-primitive).
-			return new VarDotAutocompletions(c.toString());
+			return new VarDotAutocompletions(c.toString()); // becomes "long" or "double"
 		}
 		if (right instanceof Str) {
 			// Literal String
@@ -396,6 +398,30 @@ public class JythonScriptParser
 		if (right instanceof Yield) {
 			final Yield yield = (Yield)right;
 			return parseRight(yield.getValue(), scope);
+		}
+		if (right instanceof BinOp) {
+			// e.g., division, multiplication, addition, subtraction
+			// What actual type is returned, I don't know: python allows operator overloading.
+			final BinOp binop = (BinOp)right;
+			// Weak attempt at finding out what is it (will not succeed if neither is a number)
+			// TODO this should be done recursively
+			JythonDev.printTrace("BinOp: weak attempt at finding out what kind of number it returns.");
+			// First, check if any is a number
+			final Class<?> typeL = binop.getLeft().isNumberType() ? ((Num)binop.getLeft()).getInternalN().getClass() : null,
+					 	   typeR = binop.getRight().isNumberType() ? ((Num)binop.getRight()).getInternalN().getClass() : null;
+			if (null != typeL || null != typeR) {
+				// If both are integers
+				if (typeL == PyInteger.class && typeR == PyInteger.class)
+					return new VarDotAutocompletions(Long.class.toString()); // long
+				// If any is a float
+				if (typeL == PyFloat.class || typeR == PyFloat.class)
+					return new VarDotAutocompletions(Double.class.toString()); // double
+			}
+			// Go by whatever left is, or if empty, whatever right is: no guarantee to be correct, but can be correct often
+			final DotAutocompletions da = parseRight(binop.getLeft(), scope);
+			if (da != DotAutocompletions.EMPTY)
+				return da;
+			return parseRight(binop.getRight(), scope);
 		}
 		
 		JythonDev.printTrace("Unsupported 'right' is: " + right + " " + (right != null ? right.getClass() : ""));
