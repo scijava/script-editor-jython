@@ -196,6 +196,31 @@ public class Scope {
 		return completions;
 	}
 	
+	/** Return a table of names vs classnames, with classnames being null for python builtins.
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public Map<String, String> findStartsWith2(final String name) {
+		final Map<String, String> completions = new HashMap<>();
+		Scope scope = this;
+		while (null != scope) {
+			for (final Map.Entry<String, DotAutocompletions> e: scope.vars.entrySet()) {
+				if (e.getKey().startsWith(name)) completions.put(e.getKey(), e.getValue().getClassname());
+			}
+			for (final Map.Entry<String, DotAutocompletions> e: scope.imports.entrySet()) {
+				if (e.getKey().startsWith(name)) completions.put(e.getKey(), e.getValue().getClassname());
+			}
+			for (String builtinName: indexer.getBindings().keySet()) {
+				if (builtinName.startsWith("__builtin__."))
+					builtinName = builtinName.substring(12); // without the "__builtin__." prefix
+				if (builtinName.startsWith(name)) completions.put(builtinName, null);
+			}
+			scope = scope.parent;
+		}
+		return completions;
+	}
+	
 
 	/** Find vars by type, recursively upstream the nested scopes, listing first those of the innermost scope.
 	 *
