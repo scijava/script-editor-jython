@@ -30,6 +30,7 @@ package org.scijava.plugins.scripteditor.jython;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Parameter;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -59,7 +61,8 @@ import org.scijava.ui.swing.script.autocompletion.CompletionText;
 public class JythonAutoCompletions {
 	
 	static private final Pattern assign = Pattern.compile("^([ \\t]*)(([a-zA-Z_][a-zA-Z0-9_ \\t,]*)[ \\t]+=[ \\t]+(.*))$"),
-						         nameToken = Pattern.compile("^(.*?[ \\t]+|)([a-zA-Z_][a-zA-Z0-9_]+)$"),
+						         nameToken = Pattern.compile("^(.*?[ \\t,\\[=\\(]+)([a-zA-Z_][a-zA-Z0-9_]+)$"),
+						         invocation = Pattern.compile("^(.*?[ \\t]+|)([a-zA-Z_][a-zA-Z0-9_]+\\()$"),
 						         dotNameToken = Pattern.compile("^(.*?[ \\t]+|)([a-zA-Z0-9_\\.\\[\\](){}]+)\\.([a-zA-Z0-9_]*)$"),
 						     	 endingCode = Pattern.compile("^([ \\t]*)[^#]*?(.*?)[ \\t]*:[ \\t]*(#.*|)[\\n]*$"),
 						     	 sysPathAppend = Pattern.compile("sys.path.append[ \\t]*[(][ \\t]*['\"](.*?)['\"][ \\t]*[)]"), // fragile to line breaks in e.g. .append
@@ -113,9 +116,9 @@ public class JythonAutoCompletions {
 		
 		// Query the lastLine to find out what needs autocompletion
 		
-		// Preconditions 1: can't expand when ending with any of: "()[]{},; "
+		// Preconditions 1: can't expand when ending with any of: "[]{},; "
 		final char lastChar = lastLine.charAt(lastLine.length() -1);
-		if (0 == lastLine.length() || "()[]{},; ".indexOf(lastChar) > -1)
+		if (0 == lastLine.length() || "[]{},; ".indexOf(lastChar) > -1)
 			return Collections.emptyList();
 		
 		// Preconditions 2: codeWithoutLastLine has to be valid
@@ -221,10 +224,57 @@ public class JythonAutoCompletions {
 		}
 
 		final Matcher m1 = nameToken.matcher(lastLine);
+		/*
 		if (m1.find())
 			return JythonScriptParser.parseAST(codeWithoutLastLine).getLast().findStartsWith(m1.group(2)).stream()
 					.map(s -> new BasicCompletion(provider, (lastLine + s.substring(m1.group(2).length())).substring(crop)))
 					.collect(Collectors.toList());
+		*/
+		
+		if (m1.find()) {
+			final Scope scope = JythonScriptParser.parseAST(codeWithoutLastLine).getLast();
+			// Handle argument suggestions for constructors and functions
+			provider.setParameterChoicesProvider(new CustomParameterChoicesProvider(provider, scope));
+			final Map<String, String> names = scope.findStartsWith2(m1.group(2));
+			final ArrayList<Completion> completions = new ArrayList<>();
+			for (final Map.Entry<String, String> e : names.entrySet()) {
+				final String classname = e.getValue();
+				// Add a constructor parameterized completion
+				if (null != classname) {
+					try {
+						final Class<?> c = Class.forName(classname);
+						for (final Constructor<?> constructor : c.getConstructors()) {
+							completions.add(makeDotCompletion(
+									crop > -1 && crop < m1.group(1).length() ? m1.group(1).substring(crop) : "",
+									m1.group(2), new CompletionText(e.getKey(), c, constructor), provider));
+						}
+					} catch (ClassNotFoundException cnfe) {
+						JythonDev.printTrace("Can't load class: " + classname);
+					}
+				}
+				// Add the simple classname completion
+				completions.add(new BasicCompletion(provider, (lastLine + e.getKey().substring(m1.group(2).length())).substring(crop)));
+			}
+			return completions;
+		}
+		
+		JythonDev.printTrace("invocation.matcher:");
+		final Matcher m1c = invocation.matcher(lastLine);
+		if (m1c.find()) {
+			final String name = m1c.group(2).substring(0, m1c.group(2).length() -1);
+			JythonDev.printTrace("    name: " + name);
+			final Scope scope = JythonScriptParser.parseAST(codeWithoutLastLine).getLast();
+			final DotAutocompletions da = scope.find(name, DotAutocompletions.EMPTY);
+			provider.setParameterChoicesProvider(new CustomParameterChoicesProvider(provider, scope));
+			JythonDev.print(da);
+			if (da instanceof ConstructorAutocompletions) {
+				JythonDev.printTrace("da is a ConstructorAutocompletions");
+				return da.get().stream()
+						.map(ct -> makeDotCompletion("", name, ct, provider)) // TODO pre is wrong: see below for hints
+						.collect(Collectors.toList());
+			}
+			// TODO and functions
+		}
 		
 		final Matcher m2 = dotNameToken.matcher(lastLine);
 		if (m2.find()) {
@@ -264,49 +314,12 @@ public class JythonAutoCompletions {
 			final String lowerCaseSeed = seed.toLowerCase();
 			
 			// Depends on scope
-			provider.setParameterChoicesProvider(new ParameterChoicesProvider() {
-				@Override
-				public List<Completion> getParameterChoices(JTextComponent tc,
-						org.fife.ui.autocomplete.ParameterizedCompletion.Parameter param) {
-					final Object typeObj = param.getTypeObject();
-					Class<?> clazz = null;
-					if (null != typeObj && typeObj instanceof Class) {
-						clazz = (Class<?>)typeObj;
-						JythonDev.printTrace("class: " + clazz + ", " + clazz.getCanonicalName());
-					}
-					switch (param.getType()) {
-					case "int": clazz = Integer.class; break;
-					case "long": clazz = Long.class; break;
-					case "float": clazz = Float.class; break;
-					case "double": clazz = Double.class; break;
-					case "boolean": clazz = Boolean.class; break;
-					case "char": clazz = Character.class; break;
-					case "short": clazz = Short.class; break;
-					case "byte": clazz = Byte.class; break;
-					}
-					if (null != clazz) try {
-						JythonDev.printTrace("type is: " + param.getType());
-						JythonDev.printTrace("class is: " + clazz.getCanonicalName());
-						final List<Completion> bc = scope
-								.findVarsByType(param.getType(), clazz)
-								.map(varName -> new BasicCompletion(provider, varName))
-								.collect(Collectors.toList());
-						for (int i=0; i<bc.size(); ++i) {
-							((BasicCompletion)bc.get(i)).setRelevance(bc.size() - i); // ensure sorted from innermost scope to outer, rather than alphabetical
-						}
-						JythonDev.printTrace("found bc: " + bc.size());
-						return bc;
-					} catch (Exception e) {
-						JythonDev.printError(e);
-					}
-					return Collections.emptyList();
-				}
-			});
+			provider.setParameterChoicesProvider(new CustomParameterChoicesProvider(provider, scope));
 			
 			List<Completion> list = da.get().stream()
 					.filter(s -> s.getReplacementText().toLowerCase().contains(lowerCaseSeed))
 					//.map(s -> s.getCompletion(provider, pre + s.getReplacementText(), s.getReplacementText().startsWith(seed) ? 1 : 0))
-					.map(s -> makeDotCompletion(pre, lowerCaseSeed, scope, s, provider))
+					.map(s -> makeDotCompletion(pre, lowerCaseSeed, s, provider))
 					.collect(Collectors.toList());
 			sortCompletions(list, seed);
 			return list;
@@ -315,13 +328,15 @@ public class JythonAutoCompletions {
 		return Collections.emptyList();
 	}
 	
-	private static Completion makeDotCompletion(final String pre, final String seed, final Scope scope, final CompletionText ct, final CompletionProvider provider) {
-		List<Parameter> ps = ct.getMethodArgs();
-		if (null != ps && !ps.isEmpty()) {
+	protected static Completion makeDotCompletion(final String pre, final String seed, final CompletionText ct, final CompletionProvider provider) {
+		final List<Parameter> ps = ct.getMethodArgs();
+		if (null != ps && null != ct.getReturnType()) { // ) && !ps.isEmpty()) {
 			JythonDev.printTrace("using FunctionCompletion: ps is " + ps.stream().map(Parameter::toString).collect(Collectors.joining(", ", "[", "]")));
+			String text = ct.getReplacementText();
+			if (text.endsWith("()")) text = text.substring(0, text.length() -2); // remove trailing parentheses
 			final FunctionCompletion fc = new CustomFunctionCompletion(
 					provider,
-					pre + ct.getReplacementText().substring(0, ct.getReplacementText().length() -2), // remove trailing parentheses
+					pre + text,
 					ct.getReturnType());
 			fc.setReturnValueDescription(ct.getReturnType());
 			fc.setShortDescription(ct.getSummary()); // CompletionText.getDescription returns null
@@ -336,6 +351,53 @@ public class JythonAutoCompletions {
 		}
 		JythonDev.printTrace("not FunctionCompletion: replacement text is " + ct.getReplacementText());
 		return ct.getCompletion(provider, pre + ct.getReplacementText(), ct.getReplacementText().startsWith(seed) ? 1 : 0);
+	}
+	
+	private final class CustomParameterChoicesProvider implements ParameterChoicesProvider {
+		private final JythonAutocompletionProvider provider;
+		private final Scope scope;
+
+		private CustomParameterChoicesProvider(JythonAutocompletionProvider provider, Scope scope) {
+			this.provider = provider;
+			this.scope = scope;
+		}
+
+		@Override
+		public List<Completion> getParameterChoices(JTextComponent tc,
+				org.fife.ui.autocomplete.ParameterizedCompletion.Parameter param) {
+			final Object typeObj = param.getTypeObject();
+			Class<?> clazz = null;
+			if (null != typeObj && typeObj instanceof Class) {
+				clazz = (Class<?>)typeObj;
+				JythonDev.printTrace("class: " + clazz + ", " + clazz.getCanonicalName());
+			}
+			switch (param.getType()) {
+			case "int": clazz = Integer.class; break;
+			case "long": clazz = Long.class; break;
+			case "float": clazz = Float.class; break;
+			case "double": clazz = Double.class; break;
+			case "boolean": clazz = Boolean.class; break;
+			case "char": clazz = Character.class; break;
+			case "short": clazz = Short.class; break;
+			case "byte": clazz = Byte.class; break;
+			}
+			if (null != clazz) try {
+				JythonDev.printTrace("type is: " + param.getType());
+				JythonDev.printTrace("class is: " + clazz.getCanonicalName());
+				final List<Completion> bc = scope
+						.findVarsByType(param.getType(), clazz)
+						.map(varName -> new BasicCompletion(provider, varName))
+						.collect(Collectors.toList());
+				for (int i=0; i<bc.size(); ++i) {
+					((BasicCompletion)bc.get(i)).setRelevance(bc.size() - i); // ensure sorted from innermost scope to outer, rather than alphabetical
+				}
+				JythonDev.printTrace("found bc: " + bc.size());
+				return bc;
+			} catch (Exception e) {
+				JythonDev.printError(e);
+			}
+			return Collections.emptyList();
+		}
 	}
 	
 
