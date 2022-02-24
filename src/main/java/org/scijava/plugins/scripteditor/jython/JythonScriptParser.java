@@ -86,7 +86,8 @@ public class JythonScriptParser
 		// Therefore, remove the last line, which would fail to parse because it is incomplete
 		try {
 			final mod m = ParserFacade.parse(code, CompileMode.exec, "<none>", new CompilerFlags());
-			return parseNode(m.getChildren(), null, null);
+			final Scope scope = parseNode(m.getChildren(), null, null);
+			return null == scope ? new Scope(null) : scope;
 		} catch (Throwable t) {
 			JythonDev.printError(t);
 			return new Scope(null);
@@ -103,7 +104,7 @@ public class JythonScriptParser
 	 * @return A new {@code Scope} containing {@code DotAutocompletions} to represent each statement.
 	 */
 	static public Scope parseNode(final List<PythonTree> children, final Scope parent, final String className) {
-		if (null == children) return parent;
+		if (null == children) return parent; // will return null if parent is null
 		final Scope scope = new Scope(parent, className);
 		parseNode(scope, children, className);
 		return scope;
