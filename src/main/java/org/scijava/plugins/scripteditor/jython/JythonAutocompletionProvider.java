@@ -57,6 +57,7 @@ public class JythonAutocompletionProvider extends DefaultCompletionProvider {
 		this.text_area = text_area;
 		this.formatter = formatter;
 		this.setParameterizedCompletionParams('(', ", ", ')'); // for methods and functions
+		setAutoActivationRules(true, "."); // when using auto-activation, make it so that it occurs after any letter or '.'
 		new Thread(ClassUtil::ensureCache).start();
 	}
 	
