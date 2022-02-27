@@ -114,6 +114,7 @@
 
 		<!-- TEMP: Until pom-scijava 32.0.0 is released and used here. -->
 		<script-editor.version>0.7.1-SNAPSHOT</script-editor.version>
+		<enforcer.skip>true</enforcer.skip> <!-- ONLY while depending on a SNAPSHOT -->
 	</properties>
 
 	<dependencies>
