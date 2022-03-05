@@ -113,8 +113,7 @@
 		<antlr-runtime.version>3.5.2</antlr-runtime.version>
 
 		<!-- TEMP: Until pom-scijava 32.0.0 is released and used here. -->
-		<script-editor.version>0.7.1-SNAPSHOT</script-editor.version>
-		<enforcer.skip>true</enforcer.skip> <!-- ONLY while depending on a SNAPSHOT -->
+		<script-editor.version>0.7.1</script-editor.version>
 	</properties>
 
 	<dependencies>
