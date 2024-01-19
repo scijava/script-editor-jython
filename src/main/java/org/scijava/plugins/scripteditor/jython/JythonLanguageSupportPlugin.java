@@ -59,7 +59,7 @@ public class JythonLanguageSupportPlugin extends  AbstractLanguageSupport implem
 
 	@Override
 	public String getLanguageName() {
-		return "python";
+		return "Python (Jython)";
 	}
 
 	@Override
