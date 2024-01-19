@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>script-editor-jython</artifactId>
-	<version>1.0.1-SNAPSHOT</version>
+	<version>1.0.2-SNAPSHOT</version>
 
 	<name>Jython Script Editor plugin</name>
 	<description>Jython language support for SciJava Script Editor.</description>
